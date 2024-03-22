@@ -84,28 +84,28 @@ LegacyContextualEnoteRecordV1::LegacyContextualEnoteRecordV1(LegacyEnoteRecord r
         origin_context = new_origin_context_v2;
 }
 //-------------------------------------------------------------------------------------------------------------------
-const std::uint64_t& block_index_ref(const LegacyEnoteOriginContextVariant &variant)
+std::uint64_t block_index_ref(const LegacyEnoteOriginContextVariant &variant)
 {
-    struct visitor final : public tools::variant_static_visitor<const std::uint64_t&>
+    struct visitor final : public tools::variant_static_visitor<const std::uint64_t>
     {
         using variant_static_visitor::operator();  //for blank overload
-        const std::uint64_t& operator()(const LegacyEnoteOriginContextV1 &record) const
+        std::uint64_t operator()(const LegacyEnoteOriginContextV1 &record) const
         { return record.block_index; }
-        const std::uint64_t& operator()(const LegacyEnoteOriginContextV2 &record) const
+        std::uint64_t operator()(const LegacyEnoteOriginContextV2 &record) const
         { return record.block_index; }
     };
 
     return variant.visit(visitor{});
 }
 //-------------------------------------------------------------------------------------------------------------------
-const std::uint64_t& block_timestamp_ref(const LegacyEnoteOriginContextVariant &variant)
+std::uint64_t block_timestamp_ref(const LegacyEnoteOriginContextVariant &variant)
 {
-    struct visitor final : public tools::variant_static_visitor<const std::uint64_t&>
+    struct visitor final : public tools::variant_static_visitor<const std::uint64_t>
     {
         using variant_static_visitor::operator();  //for blank overload
-        const std::uint64_t& operator()(const LegacyEnoteOriginContextV1 &record) const
+        std::uint64_t operator()(const LegacyEnoteOriginContextV1 &record) const
         { return record.block_timestamp; }
-        const std::uint64_t& operator()(const LegacyEnoteOriginContextV2 &record) const
+        std::uint64_t operator()(const LegacyEnoteOriginContextV2 &record) const
         { return record.block_timestamp; }
     };
 
@@ -126,14 +126,14 @@ const rct::key& transaction_id_ref(const LegacyEnoteOriginContextVariant &varian
     return variant.visit(visitor{});
 }
 //-------------------------------------------------------------------------------------------------------------------
-const std::uint64_t& enote_ledger_index_ref(const LegacyEnoteOriginContextVariant &variant)
+std::uint64_t enote_ledger_index_ref(const LegacyEnoteOriginContextVariant &variant)
 {
-    struct visitor final : public tools::variant_static_visitor<const std::uint64_t&>
+    struct visitor final : public tools::variant_static_visitor<const std::uint64_t>
     {
         using variant_static_visitor::operator();  //for blank overload
-        const std::uint64_t& operator()(const LegacyEnoteOriginContextV1 &record) const
+        std::uint64_t operator()(const LegacyEnoteOriginContextV1 &record) const
         { return record.enote_ledger_index; }
-        const std::uint64_t& operator()(const LegacyEnoteOriginContextV2 &record) const
+        std::uint64_t operator()(const LegacyEnoteOriginContextV2 &record) const
         { return record.enote_ledger_index; }
     };
 
@@ -164,14 +164,14 @@ void origin_status_ref(const LegacyEnoteOriginContextVariant &variant, SpEnoteOr
         ASSERT_MES_AND_THROW("unknown LegacyEnoteOriginContextVariant");
 }
 //-------------------------------------------------------------------------------------------------------------------
-const std::uint64_t& enote_version_dependent_index_ref(const LegacyEnoteOriginContextVariant &variant)
+std::uint64_t enote_version_dependent_index_ref(const LegacyEnoteOriginContextVariant &variant)
 {
-    struct visitor final : public tools::variant_static_visitor<const std::uint64_t&>
+    struct visitor final : public tools::variant_static_visitor<const std::uint64_t>
     {
         using variant_static_visitor::operator();  //for blank overload
-        const std::uint64_t& operator()(const LegacyEnoteOriginContextV1 &record) const
+        std::uint64_t operator()(const LegacyEnoteOriginContextV1 &record) const
         { return record.enote_same_amount_ledger_index; }
-        const std::uint64_t& operator()(const LegacyEnoteOriginContextV2 &record) const
+        std::uint64_t operator()(const LegacyEnoteOriginContextV2 &record) const
         { return record.rct_enote_ledger_index; }
     };
 
@@ -218,14 +218,14 @@ rct::xmr_amount amount_ref(const SpContextualEnoteRecordV1 &record)
     return record.record.amount;
 }
 //-------------------------------------------------------------------------------------------------------------------
-const SpEnoteOriginStatus& origin_status_ref(const ContextualBasicRecordVariant &variant)
+SpEnoteOriginStatus origin_status_ref(const ContextualBasicRecordVariant &variant)
 {
-    struct visitor final : public tools::variant_static_visitor<const SpEnoteOriginStatus&>
+    struct visitor final : public tools::variant_static_visitor<const SpEnoteOriginStatus>
     {
         using variant_static_visitor::operator();  //for blank overload
-        const SpEnoteOriginStatus& operator()(const LegacyContextualBasicEnoteRecordV1 &record) const
+        SpEnoteOriginStatus operator()(const LegacyContextualBasicEnoteRecordV1 &record) const
         { return origin_status_ref(record.origin_context); }
-        const SpEnoteOriginStatus& operator()(const SpContextualBasicEnoteRecordV1 &record) const
+        SpEnoteOriginStatus operator()(const SpContextualBasicEnoteRecordV1 &record) const
         { return record.origin_context.origin_status; }
     };
 
@@ -246,14 +246,14 @@ const rct::key& transaction_id_ref(const ContextualBasicRecordVariant &variant)
     return variant.visit(visitor{});
 }
 //-------------------------------------------------------------------------------------------------------------------
-const std::uint64_t& block_index_ref(const ContextualBasicRecordVariant &variant)
+std::uint64_t block_index_ref(const ContextualBasicRecordVariant &variant)
 {
-    struct visitor final : public tools::variant_static_visitor<const std::uint64_t&>
+    struct visitor final : public tools::variant_static_visitor<const std::uint64_t>
     {
         using variant_static_visitor::operator();  //for blank overload
-        const std::uint64_t& operator()(const LegacyContextualBasicEnoteRecordV1 &record) const
+        std::uint64_t operator()(const LegacyContextualBasicEnoteRecordV1 &record) const
         { return block_index_ref(record.origin_context); }
-        const std::uint64_t& operator()(const SpContextualBasicEnoteRecordV1 &record) const
+        std::uint64_t operator()(const SpContextualBasicEnoteRecordV1 &record) const
         { return record.origin_context.block_index; }
     };
 

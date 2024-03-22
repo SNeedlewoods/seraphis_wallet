@@ -151,13 +151,13 @@ struct LegacyEnoteOriginContextV2 final
 //      enote_same_amount_ledger_index (V1) or rct_enote_ledger_index (V2)
 ///
 using LegacyEnoteOriginContextVariant = tools::variant<LegacyEnoteOriginContextV1, LegacyEnoteOriginContextV2>;
-const std::uint64_t& block_index_ref(const LegacyEnoteOriginContextVariant &variant);
-const std::uint64_t& block_timestamp_ref(const LegacyEnoteOriginContextVariant &variant);
+std::uint64_t block_index_ref(const LegacyEnoteOriginContextVariant &variant);
+std::uint64_t block_timestamp_ref(const LegacyEnoteOriginContextVariant &variant);
 const rct::key& transaction_id_ref(const LegacyEnoteOriginContextVariant &variant);
-const std::uint64_t& enote_ledger_index_ref(const LegacyEnoteOriginContextVariant &variant);
+std::uint64_t enote_ledger_index_ref(const LegacyEnoteOriginContextVariant &variant);
 const SpEnoteOriginStatus& origin_status_ref(const LegacyEnoteOriginContextVariant &variant);
 void origin_status_ref(const LegacyEnoteOriginContextVariant &variant, SpEnoteOriginStatus &origin_status_out);
-const std::uint64_t& enote_version_dependent_index_ref(const LegacyEnoteOriginContextVariant &variant);
+std::uint64_t enote_version_dependent_index_ref(const LegacyEnoteOriginContextVariant &variant);
 
 ////
 // SpEnoteOriginContextV1
@@ -325,9 +325,9 @@ rct::xmr_amount amount_ref(const SpContextualEnoteRecordV1 &record);
 // block_index_ref(): get the enote's block index
 ///
 using ContextualBasicRecordVariant = tools::variant<LegacyContextualBasicEnoteRecordV1, SpContextualBasicEnoteRecordV1>;
-const SpEnoteOriginStatus& origin_status_ref(const ContextualBasicRecordVariant &variant);
+SpEnoteOriginStatus origin_status_ref(const ContextualBasicRecordVariant &variant);
 const rct::key& transaction_id_ref(const ContextualBasicRecordVariant &variant);
-const std::uint64_t& block_index_ref(const ContextualBasicRecordVariant &variant);
+std::uint64_t block_index_ref(const ContextualBasicRecordVariant &variant);
 
 ////
 // ContextualRecordVariant
