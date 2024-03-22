@@ -155,7 +155,7 @@ std::uint64_t block_index_ref(const LegacyEnoteOriginContextVariant &variant);
 std::uint64_t block_timestamp_ref(const LegacyEnoteOriginContextVariant &variant);
 const rct::key& transaction_id_ref(const LegacyEnoteOriginContextVariant &variant);
 std::uint64_t enote_ledger_index_ref(const LegacyEnoteOriginContextVariant &variant);
-const SpEnoteOriginStatus& origin_status_ref(const LegacyEnoteOriginContextVariant &variant);
+SpEnoteOriginStatus origin_status_ref(const LegacyEnoteOriginContextVariant &variant);
 void origin_status_ref(const LegacyEnoteOriginContextVariant &variant, SpEnoteOriginStatus &origin_status_out);
 std::uint64_t enote_version_dependent_index_ref(const LegacyEnoteOriginContextVariant &variant);
 
@@ -225,11 +225,21 @@ struct LegacyContextualIntermediateEnoteRecordV1 final
 {
     /// intermediate info about the enote
     LegacyIntermediateEnoteRecord record;
-    /// info about where the enote was found (V2 (post-rct) by default (empty constructor))
-    LegacyEnoteOriginContextVariant origin_context;
+    /// info about where the enote was found
+    LegacyEnoteOriginContextV1 origin_context;
+};
 
-    LegacyContextualIntermediateEnoteRecordV1();
-    LegacyContextualIntermediateEnoteRecordV1(LegacyIntermediateEnoteRecord record_in);
+////
+// LegacyContextualIntermediateEnoteRecordV2
+// - a legacy intermediate enote record, with additional info related to where it was found
+// - the key image is unknown, so spent status is also unknown
+///
+struct LegacyContextualIntermediateEnoteRecordV2 final
+{
+    /// intermediate info about the enote
+    LegacyIntermediateEnoteRecord record;
+    /// info about where the enote was found
+    LegacyEnoteOriginContextV2 origin_context;
 };
 
 /// get the record's onetime address
@@ -246,12 +256,23 @@ struct LegacyContextualEnoteRecordV1 final
     /// info about the enote
     LegacyEnoteRecord record;
     /// info about where the enote was found
-    LegacyEnoteOriginContextVariant origin_context;
+    LegacyEnoteOriginContextV1 origin_context;
     /// info about where the enote was spent
     SpEnoteSpentContextV1 spent_context;
+};
 
-    LegacyContextualEnoteRecordV1();
-    LegacyContextualEnoteRecordV1(LegacyEnoteRecord record_in);
+////
+// LegacyContextualEnoteRecordV2
+// - a legacy full enote record with all related contextual information, including spent status
+///
+struct LegacyContextualEnoteRecordV2 final
+{
+    /// info about the enote
+    LegacyEnoteRecord record;
+    /// info about where the enote was found
+    LegacyEnoteOriginContextV2 origin_context;
+    /// info about where the enote was spent
+    SpEnoteSpentContextV1 spent_context;
 };
 
 /// get the record's key image
@@ -359,7 +380,7 @@ struct SpContextualKeyImageSetV1 final
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// check if a context is older than another (returns false if apparently the same age, or younger)
-bool is_older_than(const LegacyEnoteOriginContextVariant &context, const LegacyEnoteOriginContextVariant &other_context);
+bool is_older_than(const LegacyEnoteOriginContextV1 &context, const LegacyEnoteOriginContextV1 &other_context);
 bool is_older_than(const SpEnoteOriginContextV1 &context, const SpEnoteOriginContextV1 &other_context);
 bool is_older_than(const SpEnoteSpentContextV1 &context, const SpEnoteSpentContextV1 &other_context);
 /// check if records have onetime address equivalence

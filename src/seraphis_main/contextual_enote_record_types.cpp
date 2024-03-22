@@ -47,43 +47,6 @@ namespace sp
 {
 
 //-------------------------------------------------------------------------------------------------------------------
-LegacyContextualIntermediateEnoteRecordV1::LegacyContextualIntermediateEnoteRecordV1()
-{
-    // just assume post-rct enote as default, if no EnoteRecord gets provided
-    // Note : don't forget to manually set LegacyEnoteOriginContextVariant to V1 if enote is pre-rct
-    LegacyEnoteOriginContextV2 new_origin_context;
-    origin_context = new_origin_context;
-}
-//-------------------------------------------------------------------------------------------------------------------
-LegacyContextualIntermediateEnoteRecordV1::LegacyContextualIntermediateEnoteRecordV1(LegacyIntermediateEnoteRecord record_in)
-    : record{ record_in }
-{
-    LegacyEnoteOriginContextV1 new_origin_context_v1;
-    LegacyEnoteOriginContextV2 new_origin_context_v2;
-    if (record.enote.is_type<LegacyEnoteV1>() && record.enote.unwrap<LegacyEnoteV1>().is_pre_rct)
-        origin_context = new_origin_context_v1;
-    else
-        origin_context = new_origin_context_v2;
-}
-//-------------------------------------------------------------------------------------------------------------------
-LegacyContextualEnoteRecordV1::LegacyContextualEnoteRecordV1()
-{
-    // just assume post-rct enote as default, if no EnoteRecord gets provided
-    // Note : don't forget to manually set LegacyEnoteOriginContextVariant to V1 if enote is pre-rct
-    LegacyEnoteOriginContextV2 new_origin_context;
-    origin_context = new_origin_context;
-}
-//-------------------------------------------------------------------------------------------------------------------
-LegacyContextualEnoteRecordV1::LegacyContextualEnoteRecordV1(LegacyEnoteRecord record_in) : record{ record_in }
-{
-    LegacyEnoteOriginContextV1 new_origin_context_v1;
-    LegacyEnoteOriginContextV2 new_origin_context_v2;
-    if (record.enote.is_type<LegacyEnoteV1>() && record.enote.unwrap<LegacyEnoteV1>().is_pre_rct)
-        origin_context = new_origin_context_v1;
-    else
-        origin_context = new_origin_context_v2;
-}
-//-------------------------------------------------------------------------------------------------------------------
 std::uint64_t block_index_ref(const LegacyEnoteOriginContextVariant &variant)
 {
     struct visitor final : public tools::variant_static_visitor<const std::uint64_t>
@@ -140,14 +103,14 @@ std::uint64_t enote_ledger_index_ref(const LegacyEnoteOriginContextVariant &vari
     return variant.visit(visitor{});
 }
 //-------------------------------------------------------------------------------------------------------------------
-const SpEnoteOriginStatus& origin_status_ref(const LegacyEnoteOriginContextVariant &variant)
+SpEnoteOriginStatus origin_status_ref(const LegacyEnoteOriginContextVariant &variant)
 {
-    struct visitor final : public tools::variant_static_visitor<const SpEnoteOriginStatus&>
+    struct visitor final : public tools::variant_static_visitor<const SpEnoteOriginStatus>
     {
         using variant_static_visitor::operator();  //for blank overload
-        const SpEnoteOriginStatus& operator()(const LegacyEnoteOriginContextV1 &record) const
+        SpEnoteOriginStatus operator()(const LegacyEnoteOriginContextV1 &record) const
         { return record.origin_status; }
-        const SpEnoteOriginStatus& operator()(const LegacyEnoteOriginContextV2 &record) const
+        SpEnoteOriginStatus operator()(const LegacyEnoteOriginContextV2 &record) const
         { return record.origin_status; }
     };
 
@@ -286,40 +249,38 @@ const SpEnoteSpentContextV1& spent_context_ref(const ContextualRecordVariant &va
     return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
-bool is_older_than(const LegacyEnoteOriginContextVariant &context, const LegacyEnoteOriginContextVariant &other_context)
+bool is_older_than(const LegacyEnoteOriginContextV1 &context, const LegacyEnoteOriginContextV1 &other_context)
 {
-    CHECK_AND_ASSERT_THROW_MES(LegacyEnoteOriginContextVariant::same_type(context, other_context), "compared LegacyEnoteOriginContextVariants are of different types");
-
     // 1. origin status (higher statuses are assumed to be 'older')
-    if (origin_status_ref(context) > origin_status_ref(other_context))
+    if (context.origin_status > other_context.origin_status)
         return true;
-    if (origin_status_ref(context) < origin_status_ref(other_context))
+    if (context.origin_status < other_context.origin_status)
         return false;
 
     // 2. block index
-    if (block_index_ref(context) < block_index_ref(other_context))
+    if (context.block_index < other_context.block_index)
         return true;
-    if (block_index_ref(context) > block_index_ref(other_context))
+    if (context.block_index > other_context.block_index)
         return false;
 
     // note: don't assess the tx output index
 
-    // 3. enote same amount ledger index / rct enote ledger index
-    if (enote_version_dependent_index_ref(context) < enote_version_dependent_index_ref(other_context))
+    // 3. enote same amount ledger index
+    if (context.enote_same_amount_ledger_index < other_context.enote_same_amount_ledger_index)
         return true;
-    if (enote_version_dependent_index_ref(context) > enote_version_dependent_index_ref(other_context))
+    if (context.enote_same_amount_ledger_index > other_context.enote_same_amount_ledger_index)
         return false;
 
     // 4. enote ledger index
-    if (enote_ledger_index_ref(context) < enote_ledger_index_ref(other_context))
+    if (context.enote_ledger_index < other_context.enote_ledger_index)
         return true;
-    if (enote_ledger_index_ref(context) > enote_ledger_index_ref(other_context))
+    if (context.enote_ledger_index > other_context.enote_ledger_index)
         return false;
 
     // 5. block timestamp
-    if (block_timestamp_ref(context) < block_timestamp_ref(other_context))
+    if (context.block_timestamp < other_context.block_timestamp)
         return true;
-    if (block_timestamp_ref(context) > block_timestamp_ref(other_context))
+    if (context.block_timestamp > other_context.block_timestamp)
         return false;
 
     return false;
@@ -412,12 +373,12 @@ bool have_same_destination(const SpContextualEnoteRecordV1 &a, const SpContextua
 //-------------------------------------------------------------------------------------------------------------------
 bool has_origin_status(const LegacyContextualIntermediateEnoteRecordV1 &record, const SpEnoteOriginStatus test_status)
 {
-    return origin_status_ref(record.origin_context) == test_status;
+    return record.origin_context.origin_status == test_status;
 }
 //-------------------------------------------------------------------------------------------------------------------
 bool has_origin_status(const LegacyContextualEnoteRecordV1 &record, const SpEnoteOriginStatus test_status)
 {
-    return origin_status_ref(record.origin_context) == test_status;
+    return record.origin_context.origin_status == test_status;
 }
 //-------------------------------------------------------------------------------------------------------------------
 bool has_origin_status(const SpContextualIntermediateEnoteRecordV1 &record, const SpEnoteOriginStatus test_status)

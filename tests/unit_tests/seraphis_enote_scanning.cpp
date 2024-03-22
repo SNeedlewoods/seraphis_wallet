@@ -2328,7 +2328,8 @@ TEST(seraphis_enote_scanning, legacy_pre_rct_1)
             rct::scalarmultBase(rct::sk2rct(enote_ephemeral_privkey_1))
         };
 
-    ASSERT_NO_THROW(make_legacy_pre_rct_enote(normal_addr_spendkey,
+    // TODO : this should be pre-rct enote
+    ASSERT_NO_THROW(make_legacy_enote_v1(normal_addr_spendkey,
         normal_addr_viewkey,
         1,  //amount
         0,  //index in planned mock coinbase tx
@@ -2341,7 +2342,8 @@ TEST(seraphis_enote_scanning, legacy_pre_rct_1)
             rct::scalarmultKey(subaddr_spendkey, rct::sk2rct(enote_ephemeral_privkey_2))
         };
 
-    ASSERT_NO_THROW(make_legacy_pre_rct_enote(subaddr_spendkey,
+    // TODO : this should be pre-rct enote
+    ASSERT_NO_THROW(make_legacy_enote_v1(subaddr_spendkey,
         subaddr_viewkey,
         1,  //amount
         1,  //index in planned mock coinbase tx
@@ -3990,7 +3992,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_6)
 
     ASSERT_TRUE(enote_store_int.legacy_intermediate_records().size() == 1);
     ASSERT_TRUE(
-            block_index_ref(enote_store_int.legacy_intermediate_records().begin()->second.origin_context) == 0
+            enote_store_int.legacy_intermediate_records().begin()->second.origin_context.block_index == 0
         );
     ASSERT_TRUE(get_balance(enote_store_int, {SpEnoteOriginStatus::ONCHAIN},
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) == 1);
@@ -4025,7 +4027,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_6)
 
     ASSERT_TRUE(enote_store_int.legacy_intermediate_records().size() == 1);
     ASSERT_TRUE(
-            block_index_ref(enote_store_int.legacy_intermediate_records().begin()->second.origin_context) == 0
+            enote_store_int.legacy_intermediate_records().begin()->second.origin_context.block_index == 0
         );
     ASSERT_TRUE(get_balance(enote_store_int, {SpEnoteOriginStatus::ONCHAIN},
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) == 1);

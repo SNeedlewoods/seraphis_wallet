@@ -100,9 +100,10 @@ static bool try_view_scan_legacy_enote_v1(const rct::key &legacy_base_spend_pubk
     } catch (...) { return false; }
 
     // 2. set the origin context
-    const LegacyEnoteV1 *tmp_enote = legacy_enote.try_unwrap<LegacyEnoteV1>();
-    if (tmp_enote && tmp_enote->is_pre_rct)
-    {
+    // TODO : find a solution to get rid off is_pre_rct
+//    const LegacyEnoteV1 *tmp_enote = legacy_enote.try_unwrap<LegacyEnoteV1>();
+//    if (tmp_enote && tmp_enote->is_pre_rct)
+//    {
         contextual_record_out.origin_context =
             LegacyEnoteOriginContextV1{
                     .block_index                    = block_index,
@@ -114,28 +115,29 @@ static bool try_view_scan_legacy_enote_v1(const rct::key &legacy_base_spend_pubk
                     .origin_status                  = origin_status,
                     .memo                           = tx_memo
                 };
-    }
-    else
-    {
-        contextual_record_out.origin_context =
-            LegacyEnoteOriginContextV2{
-                    .block_index            = block_index,
-                    .block_timestamp        = block_timestamp,
-                    .transaction_id         = transaction_id,
-                    .enote_tx_index         = enote_index,
-                    .rct_enote_ledger_index = enote_version_dependent_index,
-                    .enote_ledger_index     = total_enotes_before_tx + enote_index,
-                    .origin_status          = origin_status,
-                    .memo                   = tx_memo
-                };
-    }
+//    }
+//    else
+//    {
+//        contextual_record_out.origin_context =
+//            LegacyEnoteOriginContextV2{
+//                    .block_index            = block_index,
+//                    .block_timestamp        = block_timestamp,
+//                    .transaction_id         = transaction_id,
+//                    .enote_tx_index         = enote_index,
+//                    .rct_enote_ledger_index = enote_version_dependent_index,
+//                    .enote_ledger_index     = total_enotes_before_tx + enote_index,
+//                    .origin_status          = origin_status,
+//                    .memo                   = tx_memo
+//                };
+//    }
 
     return true;
 }
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
+// TODO : add one for LegacyEnoteOriginContextV2
 static void update_with_new_intermediate_record_legacy(const LegacyIntermediateEnoteRecord &new_enote_record,
-    const LegacyEnoteOriginContextVariant &new_record_origin_context,
+    const LegacyEnoteOriginContextV1 &new_record_origin_context,
     std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1> &found_enote_records_inout)
 {
     // 1. add new intermediate legacy record to found enotes (or refresh if already there)
@@ -144,7 +146,7 @@ static void update_with_new_intermediate_record_legacy(const LegacyIntermediateE
         new_enote_record.amount,
         new_record_identifier);
 
-    found_enote_records_inout.insert({new_record_identifier, new_enote_record});
+    found_enote_records_inout[new_record_identifier].record = new_enote_record;
 
     // 2. update the record's origin context
     try_update_enote_origin_context_v1(new_record_origin_context,
@@ -152,8 +154,9 @@ static void update_with_new_intermediate_record_legacy(const LegacyIntermediateE
 }
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
+// TODO : add one for LegacyEnoteOriginContextV2
 static void update_with_new_record_legacy(const LegacyEnoteRecord &new_enote_record,
-    const LegacyEnoteOriginContextVariant &new_record_origin_context,
+    const LegacyEnoteOriginContextV1 &new_record_origin_context,
     const std::list<SpContextualKeyImageSetV1> &chunk_contextual_key_images,
     std::unordered_map<rct::key, LegacyContextualEnoteRecordV1> &found_enote_records_inout,
     std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> &found_spent_key_images_inout)
@@ -164,7 +167,7 @@ static void update_with_new_record_legacy(const LegacyEnoteRecord &new_enote_rec
         new_enote_record.amount,
         new_record_identifier);
 
-    found_enote_records_inout.insert({new_record_identifier, new_enote_record});
+    found_enote_records_inout[new_record_identifier].record = new_enote_record;
 
     // 2. if the enote is spent in this chunk, update its spent context
     const crypto::key_image &new_record_key_image{new_enote_record.key_image};
@@ -643,7 +646,7 @@ void process_chunk_intermediate_legacy(const rct::key &legacy_base_spend_pubkey,
 
                 // b. we found an owned enote, so handle it
                 update_with_new_intermediate_record_legacy(new_enote_record,
-                    contextual_basic_record.unwrap<LegacyContextualBasicEnoteRecordV1>().origin_context,
+                    contextual_basic_record.unwrap<LegacyContextualBasicEnoteRecordV1>().origin_context.unwrap<LegacyEnoteOriginContextV1>(),
                     found_enote_records_out);
             } catch (...) {}
         }
@@ -709,7 +712,7 @@ void process_chunk_full_legacy(const rct::key &legacy_base_spend_pubkey,
 
                 // b. we found an owned enote, so handle it
                 update_with_new_record_legacy(new_enote_record,
-                    contextual_basic_record.unwrap<LegacyContextualBasicEnoteRecordV1>().origin_context,
+                    contextual_basic_record.unwrap<LegacyContextualBasicEnoteRecordV1>().origin_context.unwrap<LegacyEnoteOriginContextV1>(),
                     chunk_contextual_key_images,
                     found_enote_records_out,
                     found_spent_key_images_out);

@@ -50,7 +50,6 @@ namespace sp
 // LegacyEnoteV1 (regular & coinbase pre-RingCT, then coinbase-only post-RingCT)
 // - onetime address
 // - cleartext amount
-// - differentitiate pre/post-RingCT
 ///
 struct LegacyEnoteV1 final
 {
@@ -58,8 +57,6 @@ struct LegacyEnoteV1 final
     rct::key onetime_address;
     /// a
     rct::xmr_amount amount;
-
-    bool is_pre_rct;
 };
 
 /// get size in bytes
@@ -162,7 +159,7 @@ rct::key amount_commitment_ref(const LegacyEnoteVariant &variant);
 /**
 * brief: gen_legacy_enote_v1() - generate a legacy v1 enote (all random)
 */
-LegacyEnoteV1 gen_legacy_enote_v1(bool is_pre_rct);
+LegacyEnoteV1 gen_legacy_enote_v1();
 /**
 * brief: gen_legacy_enote_v2() - generate a legacy v2 enote (all random)
 */

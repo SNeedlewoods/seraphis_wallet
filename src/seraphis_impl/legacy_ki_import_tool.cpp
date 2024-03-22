@@ -144,7 +144,7 @@ void finish_legacy_ki_import_cycle(const LegacyKIImportCheckpoint &checkpoint, S
         highest_aligned_index_post_import_cycle =
             std::min(
                     highest_aligned_index_post_import_cycle + 1,
-                    block_index_ref(intermediate_record.second.origin_context)
+                    intermediate_record.second.origin_context.block_index
                 ) - 1;
     }
 

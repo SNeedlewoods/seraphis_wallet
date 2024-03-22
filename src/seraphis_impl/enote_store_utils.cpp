@@ -86,7 +86,7 @@ static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
         if (exclusions.find(BalanceExclusions::ORIGIN_LEDGER_LOCKED) != exclusions.end() &&
             current_record_origin_status == SpEnoteOriginStatus::ONCHAIN &&
             onchain_legacy_enote_is_locked(
-                    block_index_ref(current_contextual_record.origin_context),
+                    current_contextual_record.origin_context.block_index,
                     current_contextual_record.record.unlock_time,
                     top_block_index,
                     default_spendable_age,
@@ -113,9 +113,10 @@ static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
                         "get balance intermediate legacy: tracked legacy duplicates has an entry that "
                         "doesn't line up 1:1 with the legacy intermediate map even though it should (bug).");
 
-                    return origin_status_ref(legacy_intermediate_records
+                    return legacy_intermediate_records
                         .at(identifier)
-                        .origin_context);
+                        .origin_context
+                        .origin_status;
                 },
                 [&legacy_intermediate_records](const rct::key &identifier) -> rct::xmr_amount
                 {
@@ -172,7 +173,7 @@ static boost::multiprecision::uint128_t get_balance_full_legacy(
         if (exclusions.find(BalanceExclusions::ORIGIN_LEDGER_LOCKED) != exclusions.end() &&
             current_record_origin_status == SpEnoteOriginStatus::ONCHAIN &&
             onchain_legacy_enote_is_locked(
-                    block_index_ref(current_contextual_record.origin_context),
+                    current_contextual_record.origin_context.block_index,
                     current_contextual_record.record.unlock_time,
                     top_block_index,
                     default_spendable_age,
@@ -198,9 +199,10 @@ static boost::multiprecision::uint128_t get_balance_full_legacy(
                         "get balance full legacy: tracked legacy duplicates has an entry that doesn't line up "
                         "1:1 with the legacy map even though it should (bug).");
 
-                    return origin_status_ref(legacy_records
+                    return legacy_records
                         .at(identifier)
-                        .origin_context);
+                        .origin_context
+                        .origin_status;
                 },
                 [&legacy_records](const rct::key &identifier) -> rct::xmr_amount
                 {

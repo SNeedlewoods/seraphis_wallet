@@ -230,8 +230,8 @@ bool try_get_membership_proof_real_reference_mappings(const std::vector<SpContex
     return true;
 }
 //-------------------------------------------------------------------------------------------------------------------
-bool try_update_enote_origin_context_v1(const LegacyEnoteOriginContextVariant &fresh_origin_context,
-    LegacyEnoteOriginContextVariant &current_origin_context_inout)
+bool try_update_enote_origin_context_v1(const LegacyEnoteOriginContextV1 &fresh_origin_context,
+    LegacyEnoteOriginContextV1 &current_origin_context_inout)
 {
     // 1. fail if the current context is older than the fresh one
     if (is_older_than(current_origin_context_inout, fresh_origin_context))
@@ -319,9 +319,9 @@ bool try_bump_enote_record_origin_status_v1(const SpEnoteSpentStatus spent_statu
     return true;
 }
 //-------------------------------------------------------------------------------------------------------------------
-void update_contextual_enote_record_contexts_v1(const LegacyEnoteOriginContextVariant &new_origin_context,
+void update_contextual_enote_record_contexts_v1(const LegacyEnoteOriginContextV1 &new_origin_context,
     const SpEnoteSpentContextV1 &new_spent_context,
-    LegacyEnoteOriginContextVariant &origin_context_inout,
+    LegacyEnoteOriginContextV1 &origin_context_inout,
     SpEnoteSpentContextV1 &spent_context_inout)
 {
     // 1. update the origin context

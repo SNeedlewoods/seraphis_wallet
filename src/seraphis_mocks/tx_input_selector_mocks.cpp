@@ -198,7 +198,7 @@ bool InputSelectorMockV1::try_select_input_candidate_v1(const boost::multiprecis
                         "input selector (mock): tracked legacy duplicates has an entry that doesn't line up "
                         "1:1 with the legacy map even though it should (bug).");
 
-                    return origin_status_ref(mapped_legacy_contextual_enote_records.at(identifier).origin_context);
+                    return mapped_legacy_contextual_enote_records.at(identifier).origin_context.origin_status;
                 },
                 [&mapped_legacy_contextual_enote_records](const rct::key &identifier) -> rct::xmr_amount
                 {
