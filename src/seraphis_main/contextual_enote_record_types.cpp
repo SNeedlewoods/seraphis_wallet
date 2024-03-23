@@ -58,7 +58,7 @@ std::uint64_t block_index_ref(const LegacyEnoteOriginContextVariant &variant)
         { return record.block_index; }
     };
 
-    return variant.visit(visitor{});
+    return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
 std::uint64_t block_timestamp_ref(const LegacyEnoteOriginContextVariant &variant)
@@ -72,7 +72,7 @@ std::uint64_t block_timestamp_ref(const LegacyEnoteOriginContextVariant &variant
         { return record.block_timestamp; }
     };
 
-    return variant.visit(visitor{});
+    return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
 const rct::key& transaction_id_ref(const LegacyEnoteOriginContextVariant &variant)
@@ -86,7 +86,7 @@ const rct::key& transaction_id_ref(const LegacyEnoteOriginContextVariant &varian
         { return record.transaction_id; }
     };
 
-    return variant.visit(visitor{});
+    return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
 std::uint64_t enote_ledger_index_ref(const LegacyEnoteOriginContextVariant &variant)
@@ -100,7 +100,7 @@ std::uint64_t enote_ledger_index_ref(const LegacyEnoteOriginContextVariant &vari
         { return record.enote_ledger_index; }
     };
 
-    return variant.visit(visitor{});
+    return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
 SpEnoteOriginStatus origin_status_ref(const LegacyEnoteOriginContextVariant &variant)
@@ -114,7 +114,7 @@ SpEnoteOriginStatus origin_status_ref(const LegacyEnoteOriginContextVariant &var
         { return record.origin_status; }
     };
 
-    return variant.visit(visitor{});
+    return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
 void origin_status_ref(const LegacyEnoteOriginContextVariant &variant, SpEnoteOriginStatus &origin_status_out)
@@ -138,7 +138,7 @@ std::uint64_t enote_version_dependent_index_ref(const LegacyEnoteOriginContextVa
         { return record.rct_enote_ledger_index; }
     };
 
-    return variant.visit(visitor{});
+    return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
 const rct::key& onetime_address_ref(const LegacyContextualIntermediateEnoteRecordV1 &record)
@@ -192,7 +192,7 @@ SpEnoteOriginStatus origin_status_ref(const ContextualBasicRecordVariant &varian
         { return record.origin_context.origin_status; }
     };
 
-    return variant.visit(visitor{});
+    return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
 const rct::key& transaction_id_ref(const ContextualBasicRecordVariant &variant)
@@ -206,7 +206,7 @@ const rct::key& transaction_id_ref(const ContextualBasicRecordVariant &variant)
         { return record.origin_context.transaction_id; }
     };
 
-    return variant.visit(visitor{});
+    return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
 std::uint64_t block_index_ref(const ContextualBasicRecordVariant &variant)
@@ -220,7 +220,7 @@ std::uint64_t block_index_ref(const ContextualBasicRecordVariant &variant)
         { return record.origin_context.block_index; }
     };
 
-    return variant.visit(visitor{});
+    return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
 rct::xmr_amount amount_ref(const ContextualRecordVariant &variant)
