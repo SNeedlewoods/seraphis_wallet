@@ -171,7 +171,7 @@ LegacyRingSignaturePrepV1 gen_mock_legacy_ring_signature_prep_v1(const rct::key 
     const std::uint64_t real_reference_index_in_ledger{
             ledger_context_inout.max_legacy_enote_index() + add_real_at_pos + 1
         };
-    ledger_context_inout.add_legacy_coinbase(rct::pkGen(), 0, TxExtra{}, {}, std::move(mock_enotes));
+    ledger_context_inout.add_legacy_rct_coinbase(rct::pkGen(), 0, TxExtra{}, {}, std::move(mock_enotes));
 
 
     /// finish making the proof prep

@@ -2328,7 +2328,6 @@ TEST(seraphis_enote_scanning, legacy_pre_rct_1)
             rct::scalarmultBase(rct::sk2rct(enote_ephemeral_privkey_1))
         };
 
-    // TODO : this should be pre-rct enote
     ASSERT_NO_THROW(make_legacy_enote_v1(normal_addr_spendkey,
         normal_addr_viewkey,
         1,  //amount
@@ -2342,7 +2341,6 @@ TEST(seraphis_enote_scanning, legacy_pre_rct_1)
             rct::scalarmultKey(subaddr_spendkey, rct::sk2rct(enote_ephemeral_privkey_2))
         };
 
-    // TODO : this should be pre-rct enote
     ASSERT_NO_THROW(make_legacy_enote_v1(subaddr_spendkey,
         subaddr_viewkey,
         1,  //amount
@@ -2360,7 +2358,7 @@ TEST(seraphis_enote_scanning, legacy_pre_rct_1)
         ));
 
     //block 0
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_cn_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -2483,7 +2481,7 @@ TEST(seraphis_enote_scanning, legacy_coinbase_1)
         ));
 
     //block 0
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -2681,7 +2679,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_1)
             },
             tx_extra_1
         ));
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -2783,7 +2781,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_2)
         ));
 
     //add legacy enote in block 0
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -2818,7 +2816,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_2)
         {BalanceExclusions::LEGACY_INTERMEDIATE}) == 0);
 
     //spend enote in block 1
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -2870,7 +2868,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_2)
         {BalanceExclusions::LEGACY_INTERMEDIATE}) == 1);  //intermediate record promoted to full
 
     //add empty block 2 (inject to test ledger index trackers)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -3030,7 +3028,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_3)
         ));
 
     //block 0: 1 -> user, 1 -> rand
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -3088,7 +3086,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_3)
         ));
 
     //block 1: 2 -> user
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_2,
@@ -3201,7 +3199,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_3)
     ASSERT_TRUE(enote_store.top_legacy_fullscanned_block_index() == 1);
 
     //block 2: spend enote 2
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -3304,7 +3302,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_3)
         ));
 
     //block 2: 4 -> user, spend enote 1
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_3,
@@ -3369,7 +3367,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_3)
     ASSERT_TRUE(enote_store.top_legacy_fullscanned_block_index() == 2);
 
     //block 3: spend enote 3
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -3517,7 +3515,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_4)
         ));
 
     //block 0: 1 -> user
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -3556,7 +3554,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_4)
         ));
 
     //block 1: 2 -> user
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_2,
@@ -3717,7 +3715,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_5)
         ));
 
     //block 0: 1 -> user
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -3756,7 +3754,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_5)
         ));
 
     //block 1: 2 -> user
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_2,
@@ -3795,7 +3793,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_5)
     ledger_context.pop_blocks(1);
 
     //block 1: empty
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -3927,7 +3925,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_6)
         ));
 
     //block 0: enote 1-a
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -3969,7 +3967,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_6)
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) == 1);
 
     //block 1: enote 1-b
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -4091,7 +4089,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_6)
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) == 1);
 
     //block 1: enote 1-c
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -4197,7 +4195,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_6)
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) == 1);
 
     //block 1: enote 1-d
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -4254,7 +4252,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_6)
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) == 1);
 
     //block 2: spend enote 1
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -4427,7 +4425,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_7)
         ));
 
     //block 0: enote 1-a (amount 3)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra,
@@ -4469,7 +4467,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_7)
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) == 3);
 
     //block 1: enote 1-b (amount 5)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra,
@@ -4600,7 +4598,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_7)
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) == 3);
 
     //block 1: enote 1-c (amount 1)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra,
@@ -4613,7 +4611,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_7)
     ASSERT_TRUE(ledger_context.get_legacy_amount_counts(0) == 2); // [ LegacyV5 ] [ LegacyV5 ]
 
     //block 2: enote 1-d (amount 4)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra,
@@ -4670,7 +4668,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_7)
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) == 4);
 
     //block 3: spend enote 1
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -4889,7 +4887,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_8)
         ));
 
     //block 0: enote 1 (unlock at block 0)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -4938,7 +4936,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_8)
         {BalanceExclusions::ORIGIN_LEDGER_LOCKED}) == 0);  //enote 1 is locked
 
     //block 1: enote 2 (unlock at block 3)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             3,
             tx_extra_2,
@@ -4987,7 +4985,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_8)
         {BalanceExclusions::ORIGIN_LEDGER_LOCKED}) == 1);  //enote 1 is unlocked, enote 2 is locked
 
     //block 2: enote 3 (unlock at block 5)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             5,
             tx_extra_3,
@@ -5036,7 +5034,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_8)
         {BalanceExclusions::ORIGIN_LEDGER_LOCKED}) == 2);  //enotes 1, 2 are unlocked, enote 3 is locked
 
     //block 3: empty
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -5081,7 +5079,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_8)
         {BalanceExclusions::ORIGIN_LEDGER_LOCKED}) == 2);  //enotes 1, 2 are unlocked, enote 3 is locked
 
     //block 4: empty
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -5280,7 +5278,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_9)
         ));
 
     //block 0: enote 1-a (amount 1; unlock 0)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra,
@@ -5329,7 +5327,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_9)
         {BalanceExclusions::ORIGIN_LEDGER_LOCKED}) == 0);  //enote 1a is locked
 
     //block 1: empty
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -5374,7 +5372,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_9)
         {BalanceExclusions::ORIGIN_LEDGER_LOCKED}) == 1);  //enote 1a is unlocked
 
     //block 2: enote 1-b (amount 2; unlock 0)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra,
@@ -5423,7 +5421,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_9)
         {BalanceExclusions::ORIGIN_LEDGER_LOCKED}) == 0);  //enote 1a is unlocked, 1b is locked (hides 1a)
 
     //block 3: empty
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -5518,7 +5516,7 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_9)
         {BalanceExclusions::ORIGIN_LEDGER_LOCKED}) == 2);  //enotes 1a, 1b are unlocked
 
     //block 4: enote 1-c (amount 3; unlock 0), spend enote 1   (check balance with a locked and spent enote [enote 1-c])
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra,
@@ -5916,7 +5914,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_1)
         ));
 
     //block 0: legacy enote 1, legacy enote 2
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -5997,7 +5995,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_1)
         ));
 
     //block 1: legacy enote 3, spend legacy enote 2
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_3,
@@ -6295,7 +6293,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_1)
         ));
 
     //block 1: legacy enote 4, legacy enote 5
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_4,
@@ -6569,7 +6567,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_1)
         enote_store_view);
 
     //block 1: legacy enote 4, legacy enote 5 (reuse these)
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_4,
@@ -7017,7 +7015,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_2)
         ));
 
     //block 0: legacy enote 1, legacy enote 2
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -7098,7 +7096,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_2)
         ));
 
     //block 1: legacy enote 3, spend legacy enote 2
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_2,
@@ -7378,7 +7376,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_2)
         enote_store_view);
 
     //block 2: legacy enote 3, spend legacy enote 1
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_2,
@@ -8028,7 +8026,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_3)
         ));
 
     //block 0: legacy enote 1
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -8158,7 +8156,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_3)
     //don't scan
 
     //block 0: legacy enote 1
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -8598,7 +8596,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_4)
         ));
 
     //block 0: legacy enote 1, legacy enote 2
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -8679,7 +8677,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_4)
         ));
 
     //block 1: legacy enote 3, spend legacy enote 2
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_2,
@@ -8999,7 +8997,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_4)
     //don't scan
 
     //block 1: legacy enote 1
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -9222,7 +9220,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_5)
         ));
 
     //block 0: legacy enote 1, legacy enote 2
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             tx_extra_1,
@@ -9277,7 +9275,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_5)
         enote_store_view);
 
     //block 1: legacy enote 1
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},
@@ -9510,7 +9508,7 @@ TEST(seraphis_enote_scanning, legacy_sp_transition_5)
     //don't scan
 
     //block 2: legacy enote 2
-    ASSERT_NO_THROW(ledger_context.add_legacy_coinbase(
+    ASSERT_NO_THROW(ledger_context.add_legacy_rct_coinbase(
             rct::pkGen(),
             0,
             TxExtra{},

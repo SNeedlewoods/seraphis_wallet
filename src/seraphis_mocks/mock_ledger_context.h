@@ -145,7 +145,7 @@ public:
     */
     void remove_tx_from_unconfirmed_cache(const rct::key &tx_id);
     /**
-    * brief: add_legacy_coinbase - make a block with a mock legacy coinbase tx (containing legacy key images)
+    * brief: add_legacy_cn_coinbase - make a block with a mock legacy pre-RingCT coinbase tx containing legacy key images)
     * param: tx_id -
     * param: unlock_time -
     * param: memo -
@@ -153,7 +153,21 @@ public:
     * param: output_enotes -
     * return: block index of newly added block
     */
-    std::uint64_t add_legacy_coinbase(const rct::key &tx_id,
+    std::uint64_t add_legacy_cn_coinbase(const rct::key &tx_id,
+        const std::uint64_t unlock_time,
+        TxExtra memo,
+        std::vector<crypto::key_image> legacy_key_images_for_block,
+        std::vector<LegacyEnoteVariant> output_enotes);
+    /**
+    * brief: add_legacy_rct_coinbase - make a block with a mock legacy RingCT coinbase tx (containing legacy key images)
+    * param: tx_id -
+    * param: unlock_time -
+    * param: memo -
+    * param: legacy_key_images_for_block -
+    * param: output_enotes -
+    * return: block index of newly added block
+    */
+    std::uint64_t add_legacy_rct_coinbase(const rct::key &tx_id,
         const std::uint64_t unlock_time,
         TxExtra memo,
         std::vector<crypto::key_image> legacy_key_images_for_block,

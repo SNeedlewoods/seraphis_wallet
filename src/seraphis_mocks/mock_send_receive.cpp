@@ -129,7 +129,7 @@ void send_legacy_coinbase_amounts_to_user(const std::vector<rct::xmr_amount> &co
         "send legacy coinbase amounts to user: appending enote ephemeral pubkeys to tx extra failed.");
 
     // 3. commit coinbase enotes as new block
-    ledger_context_inout.add_legacy_coinbase(rct::pkGen(), 0, std::move(tx_extra), {}, std::move(coinbase_enotes));
+    ledger_context_inout.add_legacy_rct_coinbase(rct::pkGen(), 0, std::move(tx_extra), {}, std::move(coinbase_enotes));
 }
 //-------------------------------------------------------------------------------------------------------------------
 void send_sp_coinbase_amounts_to_user(const std::vector<rct::xmr_amount> &coinbase_amounts,
