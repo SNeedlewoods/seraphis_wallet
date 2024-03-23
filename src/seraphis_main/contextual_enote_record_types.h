@@ -114,7 +114,7 @@ struct LegacyEnoteOriginContextV1 final
 
 ////
 // LegacyEnoteOriginContextV2
-// - info related to the transaction where a post-RingCT enote was found
+// - info related to the transaction where a RingCT enote was found
 // - note that an enote may originate off-chain in a partial tx where the tx id is unknown
 ///
 struct LegacyEnoteOriginContextV2 final
@@ -220,6 +220,7 @@ struct LegacyContextualBasicEnoteRecordV1 final
 // LegacyContextualIntermediateEnoteRecordV1
 // - a legacy intermediate enote record, with additional info related to where it was found
 // - the key image is unknown, so spent status is also unknown
+// - pre-RingCT era
 ///
 struct LegacyContextualIntermediateEnoteRecordV1 final
 {
@@ -233,6 +234,7 @@ struct LegacyContextualIntermediateEnoteRecordV1 final
 // LegacyContextualIntermediateEnoteRecordV2
 // - a legacy intermediate enote record, with additional info related to where it was found
 // - the key image is unknown, so spent status is also unknown
+// - RingCT era
 ///
 struct LegacyContextualIntermediateEnoteRecordV2 final
 {
@@ -250,6 +252,7 @@ rct::xmr_amount amount_ref(const LegacyContextualIntermediateEnoteRecordV1 &reco
 ////
 // LegacyContextualEnoteRecordV1
 // - a legacy full enote record with all related contextual information, including spent status
+// - pre-RingCT era
 ///
 struct LegacyContextualEnoteRecordV1 final
 {
@@ -264,6 +267,7 @@ struct LegacyContextualEnoteRecordV1 final
 ////
 // LegacyContextualEnoteRecordV2
 // - a legacy full enote record with all related contextual information, including spent status
+// - RingCT era
 ///
 struct LegacyContextualEnoteRecordV2 final
 {

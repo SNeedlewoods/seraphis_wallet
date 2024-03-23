@@ -243,6 +243,19 @@ bool try_update_enote_origin_context_v1(const LegacyEnoteOriginContextV1 &fresh_
     return true;
 }
 //-------------------------------------------------------------------------------------------------------------------
+bool try_update_enote_origin_context_v1(const LegacyEnoteOriginContextV2 &fresh_origin_context,
+    LegacyEnoteOriginContextV2 &current_origin_context_inout)
+{
+    // 1. fail if the current context is older than the fresh one
+    if (is_older_than(current_origin_context_inout, fresh_origin_context))
+        return false;
+
+    // 2. overwrite with the fresh context (do this even if the fresh one seems to have the same age)
+    current_origin_context_inout = fresh_origin_context;
+
+    return true;
+}
+//-------------------------------------------------------------------------------------------------------------------
 bool try_update_enote_origin_context_v1(const SpEnoteOriginContextV1 &fresh_origin_context,
     SpEnoteOriginContextV1 &current_origin_context_inout)
 {

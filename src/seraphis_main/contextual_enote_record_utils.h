@@ -125,6 +125,8 @@ bool try_get_membership_proof_real_reference_mappings(const std::vector<SpContex
 */
 bool try_update_enote_origin_context_v1(const LegacyEnoteOriginContextV1 &fresh_origin_context,
     LegacyEnoteOriginContextV1 &current_origin_context_inout);
+bool try_update_enote_origin_context_v1(const LegacyEnoteOriginContextV2 &fresh_origin_context,
+    LegacyEnoteOriginContextV2 &current_origin_context_inout);
 bool try_update_enote_origin_context_v1(const SpEnoteOriginContextV1 &fresh_origin_context,
     SpEnoteOriginContextV1 &current_origin_context_inout);
 /**
