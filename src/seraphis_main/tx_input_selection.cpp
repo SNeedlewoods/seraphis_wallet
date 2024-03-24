@@ -64,6 +64,7 @@ static InputSelectionType input_selection_type(const ContextualRecordVariant &co
     {
         using variant_static_visitor::operator();  //for blank overload
         InputSelectionType operator()(const LegacyContextualEnoteRecordV1&) const { return InputSelectionType::LEGACY; }
+        InputSelectionType operator()(const LegacyContextualEnoteRecordV2&) const { return InputSelectionType::LEGACY; }
         InputSelectionType operator()(const SpContextualEnoteRecordV1&) const { return InputSelectionType::SERAPHIS; }
     };
 

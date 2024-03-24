@@ -135,7 +135,7 @@ static void refresh_user_enote_store_legacy_multisig(const std::vector<multisig:
     for (const auto &intermediate_record : import_cycle_checkpoint.legacy_intermediate_records)
     {
         saved_key_components[rct::rct2pk(onetime_address_ref(intermediate_record.second))] =
-            intermediate_record.second.record.enote_view_extension;
+            enote_record_ref(intermediate_record.second).enote_view_extension;
     }
 
     // 4. recover key images (multisig KI ceremony)
@@ -170,7 +170,7 @@ static bool legacy_multisig_input_is_ready_to_spend(const LegacyMultisigInputPro
     const std::uint64_t top_block_index)
 {
     // 1. get the legacy enote from the enote store
-    LegacyContextualEnoteRecordV1 contextual_record;
+    LegacyContextualEnoteRecordV2 contextual_record;
     if (!enote_store.try_get_legacy_enote_record(input_proposal.key_image, contextual_record))
         return false;
 
@@ -523,7 +523,7 @@ static void seraphis_multisig_tx_v1_test(const std::uint32_t threshold,
     const InputSelectorMockV1 input_selector{enote_store};
     const FeeCalculatorMockTrivial tx_fee_calculator;  //trivial fee calculator so we can use specified input fee
 
-    std::vector<LegacyContextualEnoteRecordV1> legacy_contextual_inputs;
+    std::vector<LegacyContextualEnoteRecordVariant> legacy_contextual_inputs;
     std::vector<SpContextualEnoteRecordV1> sp_contextual_inputs;
     DiscretizedFee discretized_transaction_fee;
     ASSERT_NO_THROW(ASSERT_TRUE(try_prepare_inputs_and_outputs_for_transfer_v1(sp_user_address,

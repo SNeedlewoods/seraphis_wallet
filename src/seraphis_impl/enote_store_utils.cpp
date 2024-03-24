@@ -56,7 +56,7 @@ namespace sp
 //-------------------------------------------------------------------------------------------------------------------
 static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
     // [ legacy identifier : legacy intermediate record ]
-    const std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1> &legacy_intermediate_records,
+    const std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordVariant> &legacy_intermediate_records,
     // [ Ko : legacy identifier ]
     const std::unordered_map<rct::key, std::unordered_set<rct::key>> &legacy_onetime_address_identifier_map,
     const std::uint64_t top_block_index,
@@ -74,9 +74,32 @@ static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
     // note: it is unknown if enotes in intermediate records are spent
     for (const auto &mapped_contextual_record : legacy_intermediate_records)
     {
-        const LegacyContextualIntermediateEnoteRecordV1 &current_contextual_record{mapped_contextual_record.second};
+        const LegacyContextualIntermediateEnoteRecordV1* current_contextual_record_v1 = mapped_contextual_record.second.try_unwrap<LegacyContextualIntermediateEnoteRecordV1>();
+        const LegacyContextualIntermediateEnoteRecordV2* current_contextual_record_v2 = mapped_contextual_record.second.try_unwrap<LegacyContextualIntermediateEnoteRecordV2>();
         SpEnoteOriginStatus current_record_origin_status;
-        origin_status_ref(current_contextual_record.origin_context, current_record_origin_status);
+        std::uint64_t current_record_block_index;
+        std::uint64_t current_record_unlock_time;
+        LegacyEnoteVariant current_record_enote;
+        rct::xmr_amount current_record_amount;
+
+        if (current_contextual_record_v1)
+        {
+            current_record_origin_status = current_contextual_record_v1->origin_context.origin_status;
+            current_record_block_index = current_contextual_record_v1->origin_context.block_index;
+            current_record_unlock_time = current_contextual_record_v1->record.unlock_time;
+            current_record_enote = current_contextual_record_v1->record.enote;
+            current_record_amount = current_contextual_record_v1->record.amount;
+        }
+        else if (current_contextual_record_v2)
+        {
+            current_record_origin_status = current_contextual_record_v2->origin_context.origin_status;
+            current_record_block_index = current_contextual_record_v2->origin_context.block_index;
+            current_record_unlock_time = current_contextual_record_v2->record.unlock_time;
+            current_record_enote = current_contextual_record_v2->record.enote;
+            current_record_amount = current_contextual_record_v2->record.amount;
+        }
+        else
+            CHECK_AND_ASSERT_THROW_MES(false, "LegacyContextualIntermediateEnoteRecord not implemented");
 
         // a. ignore this enote if its origin status is not requested
         if (origin_statuses.find(current_record_origin_status) == origin_statuses.end())
@@ -86,8 +109,8 @@ static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
         if (exclusions.find(BalanceExclusions::ORIGIN_LEDGER_LOCKED) != exclusions.end() &&
             current_record_origin_status == SpEnoteOriginStatus::ONCHAIN &&
             onchain_legacy_enote_is_locked(
-                    current_contextual_record.origin_context.block_index,
-                    current_contextual_record.record.unlock_time,
+                    current_record_block_index,
+                    current_record_unlock_time,
                     top_block_index,
                     default_spendable_age,
                     static_cast<std::uint64_t>(std::time(nullptr))
@@ -96,15 +119,15 @@ static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
 
         // c. ignore enotes that share onetime addresses with other enotes but don't have the highest amount among them
         CHECK_AND_ASSERT_THROW_MES(legacy_onetime_address_identifier_map
-                    .find(onetime_address_ref(current_contextual_record.record.enote)) !=
+                    .find(onetime_address_ref(current_record_enote)) !=
                 legacy_onetime_address_identifier_map.end(),
             "get balance intermediate legacy: tracked legacy duplicates is missing a onetime address (bug).");
 
         if (!legacy_enote_has_highest_amount_in_set(mapped_contextual_record.first,
-                current_contextual_record.record.amount,
+                current_record_amount,
                 origin_statuses,
                 legacy_onetime_address_identifier_map.at(
-                    onetime_address_ref(current_contextual_record.record.enote)
+                    onetime_address_ref(current_record_enote)
                 ),
                 [&legacy_intermediate_records](const rct::key &identifier) -> const SpEnoteOriginStatus&
                 {
@@ -113,10 +136,7 @@ static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
                         "get balance intermediate legacy: tracked legacy duplicates has an entry that "
                         "doesn't line up 1:1 with the legacy intermediate map even though it should (bug).");
 
-                    return legacy_intermediate_records
-                        .at(identifier)
-                        .origin_context
-                        .origin_status;
+                    return origin_status_ref(legacy_intermediate_records.at(identifier));
                 },
                 [&legacy_intermediate_records](const rct::key &identifier) -> rct::xmr_amount
                 {
@@ -125,12 +145,12 @@ static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
                         "get balance intermediate legacy: tracked legacy duplicates has an entry that "
                         "doesn't line up 1:1 with the legacy intermediate map even though it should (bug).");
 
-                    return legacy_intermediate_records.at(identifier).record.amount;
+                    return enote_record_ref(legacy_intermediate_records.at(identifier)).amount;
                 }))
             continue;
 
         // d. update balance
-        balance += current_contextual_record.record.amount;
+        balance += current_record_amount;
     }
 
     return balance;
@@ -139,7 +159,7 @@ static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
 //-------------------------------------------------------------------------------------------------------------------
 static boost::multiprecision::uint128_t get_balance_full_legacy(
     // [ legacy identifier : legacy record ]
-    const std::unordered_map<rct::key, LegacyContextualEnoteRecordV1> &legacy_records,
+    const std::unordered_map<rct::key, LegacyContextualEnoteRecordVariant> &legacy_records,
     // [ Ko : legacy identifier ]
     const std::unordered_map<rct::key, std::unordered_set<rct::key>> &legacy_onetime_address_identifier_map,
     const std::uint64_t top_block_index,
@@ -157,24 +177,51 @@ static boost::multiprecision::uint128_t get_balance_full_legacy(
     // 2. accumulate balance
     for (const auto &mapped_contextual_record : legacy_records)
     {
-        const LegacyContextualEnoteRecordV1 &current_contextual_record{mapped_contextual_record.second};
+        const LegacyContextualEnoteRecordV1* current_contextual_record_v1 = mapped_contextual_record.second.try_unwrap<LegacyContextualEnoteRecordV1>();
+        const LegacyContextualEnoteRecordV2* current_contextual_record_v2 = mapped_contextual_record.second.try_unwrap<LegacyContextualEnoteRecordV2>();
         SpEnoteOriginStatus current_record_origin_status;
-        origin_status_ref(current_contextual_record.origin_context, current_record_origin_status);
+        SpEnoteSpentContextV1 current_record_spent_context;
+        std::uint64_t current_record_block_index;
+        std::uint64_t current_record_unlock_time;
+        LegacyEnoteVariant current_record_enote;
+        rct::xmr_amount current_record_amount;
+
+        if (current_contextual_record_v1)
+        {
+            current_record_origin_status = current_contextual_record_v1->origin_context.origin_status;
+            current_record_block_index = current_contextual_record_v1->origin_context.block_index;
+            current_record_unlock_time = current_contextual_record_v1->record.unlock_time;
+            current_record_enote = current_contextual_record_v1->record.enote;
+            current_record_amount = current_contextual_record_v1->record.amount;
+            current_record_spent_context = current_contextual_record_v1->spent_context;
+        }
+        else if (current_contextual_record_v2)
+        {
+            current_record_origin_status = current_contextual_record_v2->origin_context.origin_status;
+            current_record_block_index = current_contextual_record_v2->origin_context.block_index;
+            current_record_unlock_time = current_contextual_record_v2->record.unlock_time;
+            current_record_enote = current_contextual_record_v2->record.enote;
+            current_record_amount = current_contextual_record_v2->record.amount;
+            current_record_spent_context = current_contextual_record_v2->spent_context;
+        }
+        else
+            CHECK_AND_ASSERT_THROW_MES(false, "LegacyContextualEnoteRecord not implemented");
+
 
         // a. ignore this enote if its origin status is not requested
         if (origin_statuses.find(current_record_origin_status) == origin_statuses.end())
             continue;
 
         // b. ignore this enote if its spent status is requested
-        if (spent_statuses.find(current_contextual_record.spent_context.spent_status) != spent_statuses.end())
+        if (spent_statuses.find(current_record_spent_context.spent_status) != spent_statuses.end())
             continue;
 
         // c. ignore locked onchain enotes if they should be excluded
         if (exclusions.find(BalanceExclusions::ORIGIN_LEDGER_LOCKED) != exclusions.end() &&
             current_record_origin_status == SpEnoteOriginStatus::ONCHAIN &&
             onchain_legacy_enote_is_locked(
-                    current_contextual_record.origin_context.block_index,
-                    current_contextual_record.record.unlock_time,
+                    current_record_block_index,
+                    current_record_unlock_time,
                     top_block_index,
                     default_spendable_age,
                     static_cast<std::uint64_t>(std::time(nullptr)))
@@ -182,16 +229,17 @@ static boost::multiprecision::uint128_t get_balance_full_legacy(
             continue;
 
         // d. ignore enotes that share onetime addresses with other enotes but don't have the highest amount among them
+        // TODO NOW : tests fail here :  onetime_address_ref returns zero key
         CHECK_AND_ASSERT_THROW_MES(legacy_onetime_address_identifier_map
-                    .find(onetime_address_ref(current_contextual_record.record.enote)) !=
+                    .find(onetime_address_ref(current_record_enote)) !=
                 legacy_onetime_address_identifier_map.end(),
             "get balance full legacy: tracked legacy duplicates is missing a onetime address (bug).");
 
         if (!legacy_enote_has_highest_amount_in_set(mapped_contextual_record.first,
-                current_contextual_record.record.amount,
+                current_record_amount,
                 origin_statuses,
                 legacy_onetime_address_identifier_map.at(
-                    onetime_address_ref(current_contextual_record.record.enote)
+                    onetime_address_ref(current_record_enote)
                 ),
                 [&legacy_records](const rct::key &identifier) -> const SpEnoteOriginStatus&
                 {
@@ -199,10 +247,7 @@ static boost::multiprecision::uint128_t get_balance_full_legacy(
                         "get balance full legacy: tracked legacy duplicates has an entry that doesn't line up "
                         "1:1 with the legacy map even though it should (bug).");
 
-                    return legacy_records
-                        .at(identifier)
-                        .origin_context
-                        .origin_status;
+                    return origin_status_ref(legacy_records.at(identifier));
                 },
                 [&legacy_records](const rct::key &identifier) -> rct::xmr_amount
                 {
@@ -210,12 +255,12 @@ static boost::multiprecision::uint128_t get_balance_full_legacy(
                         "get balance full legacy: tracked legacy duplicates has an entry that doesn't line up "
                         "1:1 with the legacy map even though it should (bug).");
 
-                    return legacy_records.at(identifier).record.amount;
+                    return enote_record_ref(legacy_records.at(identifier)).amount;
                 }))
             continue;
 
         // e. update balance
-        balance += current_contextual_record.record.amount;
+        balance += current_record_amount;
     }
 
     return balance;

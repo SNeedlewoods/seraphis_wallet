@@ -1185,7 +1185,7 @@ void make_v1_multisig_tx_proposal_v1(std::vector<LegacyMultisigInputProposalV1> 
     proposal_out.tx_version                      = tx_version;
 }
 //-------------------------------------------------------------------------------------------------------------------
-void make_v1_multisig_tx_proposal_v1(const std::vector<LegacyContextualEnoteRecordV1> &legacy_contextual_inputs,
+void make_v1_multisig_tx_proposal_v1(const std::vector<LegacyContextualEnoteRecordVariant> &legacy_contextual_inputs,
     const std::vector<SpContextualEnoteRecordV1> &sp_contextual_inputs,
     std::unordered_map<crypto::key_image, LegacyMultisigRingSignaturePrepV1> legacy_multisig_ring_signature_preps,
     const multisig::signer_set_filter aggregate_signer_set_filter,
@@ -1215,14 +1215,14 @@ void make_v1_multisig_tx_proposal_v1(const std::vector<LegacyContextualEnoteReco
     std::vector<LegacyMultisigInputProposalV1> legacy_multisig_input_proposals;
     legacy_multisig_input_proposals.reserve(legacy_contextual_inputs.size());
 
-    for (const LegacyContextualEnoteRecordV1 &legacy_contextual_input : legacy_contextual_inputs)
+    for (const LegacyContextualEnoteRecordVariant &legacy_contextual_input : legacy_contextual_inputs)
     {
         CHECK_AND_ASSERT_THROW_MES(legacy_multisig_ring_signature_preps.find(key_image_ref(legacy_contextual_input)) !=
                 legacy_multisig_ring_signature_preps.end(),
             "make v1 multisig tx proposal (v1): a legacy contextual input doesn't have a corresponding multisig prep.");
 
         // convert inputs to multisig input proposals
-        make_v1_legacy_multisig_input_proposal_v1(legacy_contextual_input.record,
+        make_v1_legacy_multisig_input_proposal_v1(enote_record_ref(legacy_contextual_input),
             rct::rct2sk(rct::skGen()),
             legacy_multisig_ring_signature_preps
                     .at(key_image_ref(legacy_contextual_input))

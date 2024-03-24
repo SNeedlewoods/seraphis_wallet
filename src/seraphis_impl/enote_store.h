@@ -105,10 +105,10 @@ public:
     bool has_enote_with_key_image(const crypto::key_image &key_image) const;
     /// get the legacy [ legacy identifier : legacy intermediate record ] map
     /// - note: useful for collecting onetime addresses and viewkey extensions for key image recovery
-    const std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1>& legacy_intermediate_records() const
+    const std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordVariant>& legacy_intermediate_records() const
     { return m_legacy_intermediate_contextual_enote_records; }
     /// get the legacy [ legacy identifier : legacy record ] map
-    const std::unordered_map<rct::key, LegacyContextualEnoteRecordV1>& legacy_records() const
+    const std::unordered_map<rct::key, LegacyContextualEnoteRecordVariant>& legacy_records() const
     { return m_legacy_contextual_enote_records; }
     /// get the legacy [ Ko : [ legacy identifier ] ] map
     const std::unordered_map<rct::key, std::unordered_set<rct::key>>& legacy_onetime_address_identifier_map() const
@@ -124,6 +124,8 @@ public:
     ///   highest-amount legacy enote is currently in the intermediate records map
     bool try_get_legacy_enote_record(const crypto::key_image &key_image,
         LegacyContextualEnoteRecordV1 &contextual_record_out) const;
+    bool try_get_legacy_enote_record(const crypto::key_image &key_image,
+        LegacyContextualEnoteRecordV2 &contextual_record_out) const;
     /// try to get the seraphis enote with a specified key image
     bool try_get_sp_enote_record(const crypto::key_image &key_image,
         SpContextualEnoteRecordV1 &contextual_record_out) const;
@@ -148,26 +150,26 @@ public:
 
     /// update the store with legacy enote records and associated context
     void update_with_intermediate_legacy_records_from_nonledger(const SpEnoteOriginStatus nonledger_origin_status,
-        const std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1> &found_enote_records,
+        const std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordVariant> &found_enote_records,
         const std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> &found_spent_key_images,
         std::list<EnoteStoreEvent> &events_inout);
     void update_with_intermediate_legacy_records_from_ledger(const rct::key &alignment_block_id,
         const std::uint64_t first_new_block,
         const std::vector<rct::key> &new_block_ids,
-        const std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1> &found_enote_records,
+        const std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordVariant> &found_enote_records,
         const std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> &found_spent_key_images,
         std::list<EnoteStoreEvent> &events_inout);
     void update_with_intermediate_legacy_found_spent_key_images(
         const std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> &found_spent_key_images,
         std::list<EnoteStoreEvent> &events_inout);
     void update_with_legacy_records_from_nonledger(const SpEnoteOriginStatus nonledger_origin_status,
-        const std::unordered_map<rct::key, LegacyContextualEnoteRecordV1> &found_enote_records,
+        const std::unordered_map<rct::key, LegacyContextualEnoteRecordVariant> &found_enote_records,
         const std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> &found_spent_key_images,
         std::list<EnoteStoreEvent> &events_inout);
     void update_with_legacy_records_from_ledger(const rct::key &alignment_block_id,
         const std::uint64_t first_new_block,
         const std::vector<rct::key> &new_block_ids,
-        const std::unordered_map<rct::key, LegacyContextualEnoteRecordV1> &found_enote_records,
+        const std::unordered_map<rct::key, LegacyContextualEnoteRecordVariant> &found_enote_records,
         const std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> &found_spent_key_images,
         std::list<EnoteStoreEvent> &events_inout);
 
@@ -232,7 +234,11 @@ private:
     /// add a record
     void add_record(const LegacyContextualIntermediateEnoteRecordV1 &new_record,
         std::list<EnoteStoreEvent> &events_inout);
+    void add_record(const LegacyContextualIntermediateEnoteRecordV2 &new_record,
+        std::list<EnoteStoreEvent> &events_inout);
     void add_record(const LegacyContextualEnoteRecordV1 &new_record,
+        std::list<EnoteStoreEvent> &events_inout);
+    void add_record(const LegacyContextualEnoteRecordV2 &new_record,
         std::list<EnoteStoreEvent> &events_inout);
     void add_record(const SpContextualEnoteRecordV1 &new_record,
         std::list<EnoteStoreEvent> &events_inout);
@@ -256,10 +262,10 @@ private:
 
 //member variables
     /// legacy intermediate enotes: [ legacy identifier : legacy intermediate record ]
-    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1>
+    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordVariant>
         m_legacy_intermediate_contextual_enote_records;
     /// legacy enotes: [ legacy identifier : legacy record ]
-    std::unordered_map<rct::key, LegacyContextualEnoteRecordV1> m_legacy_contextual_enote_records;
+    std::unordered_map<rct::key, LegacyContextualEnoteRecordVariant> m_legacy_contextual_enote_records;
     /// seraphis enotes: [ seraphis KI : seraphis record ]
     std::unordered_map<crypto::key_image, SpContextualEnoteRecordV1> m_sp_contextual_enote_records;
 

@@ -76,7 +76,7 @@ bool InputSelectorMockSimpleV1::try_select_input_candidate_v1(const boost::multi
     ContextualRecordVariant &selected_input_out) const
 {
     // 1. try to select a legacy input
-    for (const LegacyContextualEnoteRecordV1 &contextual_enote_record : m_enote_store.m_legacy_contextual_enote_records)
+    for (const LegacyContextualEnoteRecordVariant &contextual_enote_record : m_enote_store.m_legacy_contextual_enote_records)
     {
         // a. only consider unspent enotes
         if (!has_spent_status(contextual_enote_record, SpEnoteSpentStatus::UNSPENT))
@@ -87,13 +87,22 @@ bool InputSelectorMockSimpleV1::try_select_input_candidate_v1(const boost::multi
             [&contextual_enote_record](const std::pair<rct::xmr_amount, ContextualRecordVariant> &comparison_record)
             -> bool
             {
-                if (!comparison_record.second.is_type<LegacyContextualEnoteRecordV1>())
+                if (comparison_record.second.is_type<LegacyContextualEnoteRecordV1>())
+                {
+                    return have_same_destination(
+                            contextual_enote_record,
+                            comparison_record.second.unwrap<LegacyContextualEnoteRecordV1>()
+                        );
+                }
+                else if (comparison_record.second.is_type<LegacyContextualEnoteRecordV2>())
+                {
+                    return have_same_destination(
+                            contextual_enote_record,
+                            comparison_record.second.unwrap<LegacyContextualEnoteRecordV2>()
+                        );
+                }
+                else
                     return false;
-
-                return have_same_destination(
-                        contextual_enote_record,
-                        comparison_record.second.unwrap<LegacyContextualEnoteRecordV1>()
-                    );
             };
 
         // c. ignore already added legacy inputs
@@ -104,7 +113,10 @@ bool InputSelectorMockSimpleV1::try_select_input_candidate_v1(const boost::multi
         if (pred_has_match(candidate_inputs, InputSelectionType::LEGACY, record_finder))
             continue;
 
-        selected_input_out = contextual_enote_record;
+        if (contextual_enote_record.is_type<LegacyContextualEnoteRecordV1>())
+            selected_input_out = contextual_enote_record.unwrap<LegacyContextualEnoteRecordV1>();
+        else if (contextual_enote_record.is_type<LegacyContextualEnoteRecordV2>())
+            selected_input_out = contextual_enote_record.unwrap<LegacyContextualEnoteRecordV2>();
         return true;
     }
 
@@ -150,7 +162,7 @@ bool InputSelectorMockV1::try_select_input_candidate_v1(const boost::multiprecis
     ContextualRecordVariant &selected_input_out) const
 {
     // 1. try to select from legacy enotes
-    const std::unordered_map<rct::key, LegacyContextualEnoteRecordV1> &mapped_legacy_contextual_enote_records{
+    const std::unordered_map<rct::key, LegacyContextualEnoteRecordVariant> &mapped_legacy_contextual_enote_records{
             m_enote_store.legacy_records()
         };
     const std::unordered_map<rct::key, std::unordered_set<rct::key>> &legacy_onetime_address_identifier_map{
@@ -166,13 +178,22 @@ bool InputSelectorMockV1::try_select_input_candidate_v1(const boost::multiprecis
         auto record_finder =
             [&mapped_enote_record](const std::pair<rct::xmr_amount, ContextualRecordVariant> &comparison_record) -> bool
             {
-                if (!comparison_record.second.is_type<LegacyContextualEnoteRecordV1>())
+                if (comparison_record.second.is_type<LegacyContextualEnoteRecordV1>())
+                {
+                    return have_same_destination(
+                            mapped_enote_record.second,
+                            comparison_record.second.unwrap<LegacyContextualEnoteRecordV1>()
+                        );
+                }
+                else if (comparison_record.second.is_type<LegacyContextualEnoteRecordV2>())
+                {
+                    return have_same_destination(
+                            mapped_enote_record.second,
+                            comparison_record.second.unwrap<LegacyContextualEnoteRecordV2>()
+                        );
+                }
+                else
                     return false;
-
-                return have_same_destination(
-                        mapped_enote_record.second,
-                        comparison_record.second.unwrap<LegacyContextualEnoteRecordV1>()
-                    );
             };
 
         // c. ignore already added legacy inputs
@@ -186,10 +207,10 @@ bool InputSelectorMockV1::try_select_input_candidate_v1(const boost::multiprecis
         // e. if this legacy enote shares a onetime address with any other legacy enotes, only proceed if this one
         //   has the highest amount
         if (!legacy_enote_has_highest_amount_in_set(mapped_enote_record.first,
-                mapped_enote_record.second.record.amount,
+                enote_record_ref(mapped_enote_record.second).amount,
                 {SpEnoteOriginStatus::OFFCHAIN, SpEnoteOriginStatus::UNCONFIRMED, SpEnoteOriginStatus::ONCHAIN},
                 legacy_onetime_address_identifier_map.at(
-                    onetime_address_ref(mapped_enote_record.second.record.enote)
+                    onetime_address_ref(enote_record_ref(mapped_enote_record.second).enote)
                 ),
                 [&mapped_legacy_contextual_enote_records](const rct::key &identifier) -> const SpEnoteOriginStatus&
                 {
@@ -198,7 +219,7 @@ bool InputSelectorMockV1::try_select_input_candidate_v1(const boost::multiprecis
                         "input selector (mock): tracked legacy duplicates has an entry that doesn't line up "
                         "1:1 with the legacy map even though it should (bug).");
 
-                    return mapped_legacy_contextual_enote_records.at(identifier).origin_context.origin_status;
+                    return origin_status_ref(mapped_legacy_contextual_enote_records.at(identifier));
                 },
                 [&mapped_legacy_contextual_enote_records](const rct::key &identifier) -> rct::xmr_amount
                 {
@@ -207,11 +228,15 @@ bool InputSelectorMockV1::try_select_input_candidate_v1(const boost::multiprecis
                         "input selector (mock): tracked legacy duplicates has an entry that doesn't line up "
                         "1:1 with the legacy map even though it should (bug).");
 
-                    return mapped_legacy_contextual_enote_records.at(identifier).record.amount;
+                    return enote_record_ref(mapped_legacy_contextual_enote_records.at(identifier)).amount;
                 }))
             continue;
 
-        selected_input_out = mapped_enote_record.second;
+        if (mapped_enote_record.second.is_type<LegacyContextualEnoteRecordV1>())
+            selected_input_out = mapped_enote_record.second.unwrap<LegacyContextualEnoteRecordV1>();
+        else if (mapped_enote_record.second.is_type<LegacyContextualEnoteRecordV2>())
+            selected_input_out = mapped_enote_record.second.unwrap<LegacyContextualEnoteRecordV2>();
+
         return true;
     }
 

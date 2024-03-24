@@ -255,7 +255,7 @@ void construct_tx_for_mock_ledger_v1(const legacy_mock_keys &local_user_legacy_k
     normal_payments_out = normal_payment_proposals;
 
     // 3. prepare inputs and finalize outputs
-    std::vector<LegacyContextualEnoteRecordV1> legacy_contextual_inputs;
+    std::vector<LegacyContextualEnoteRecordVariant> legacy_contextual_inputs;
     std::vector<SpContextualEnoteRecordV1> sp_contextual_inputs;
     std::vector<jamtis::JamtisPaymentProposalSelfSendV1> selfsend_payment_proposals;  //note: no user-defined selfsends
     DiscretizedFee discretized_transaction_fee;

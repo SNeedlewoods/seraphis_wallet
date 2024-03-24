@@ -60,13 +60,13 @@ class SpEnoteStoreMockSimpleV1 final
 
 public:
     /// add a record
-    void add_record(const LegacyContextualEnoteRecordV1 &new_record);
+    void add_record(const LegacyContextualEnoteRecordVariant &new_record);
     void add_record(const SpContextualEnoteRecordV1 &new_record);
 
 //member variables
 protected:
     /// legacy enotes
-    std::list<LegacyContextualEnoteRecordV1> m_legacy_contextual_enote_records;
+    std::list<LegacyContextualEnoteRecordVariant> m_legacy_contextual_enote_records;
     /// seraphis enotes
     std::list<SpContextualEnoteRecordV1> m_sp_contextual_enote_records;
 };

@@ -141,11 +141,22 @@ void finish_legacy_ki_import_cycle(const LegacyKIImportCheckpoint &checkpoint, S
             continue;
 
         // b. clamp the alignment index to one block below the intermediate record's origin
-        highest_aligned_index_post_import_cycle =
-            std::min(
-                    highest_aligned_index_post_import_cycle + 1,
-                    intermediate_record.second.origin_context.block_index
-                ) - 1;
+        if (intermediate_record.second.is_type<LegacyContextualIntermediateEnoteRecordV1>())
+        {
+            highest_aligned_index_post_import_cycle =
+                std::min(
+                        highest_aligned_index_post_import_cycle + 1,
+                        intermediate_record.second.unwrap<LegacyContextualIntermediateEnoteRecordV1>().origin_context.block_index
+                    ) - 1;
+        }
+        else if (intermediate_record.second.is_type<LegacyContextualIntermediateEnoteRecordV2>())
+        {
+            highest_aligned_index_post_import_cycle =
+                std::min(
+                        highest_aligned_index_post_import_cycle + 1,
+                        intermediate_record.second.unwrap<LegacyContextualIntermediateEnoteRecordV2>().origin_context.block_index
+                    ) - 1;
+        }
     }
 
     // 3. update the legacy fullscan index

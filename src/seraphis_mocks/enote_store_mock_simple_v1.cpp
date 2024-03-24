@@ -47,7 +47,7 @@ namespace sp
 namespace mocks
 {
 //-------------------------------------------------------------------------------------------------------------------
-void SpEnoteStoreMockSimpleV1::add_record(const LegacyContextualEnoteRecordV1 &new_record)
+void SpEnoteStoreMockSimpleV1::add_record(const LegacyContextualEnoteRecordVariant &new_record)
 {
     m_legacy_contextual_enote_records.emplace_back(new_record);
 }

@@ -180,7 +180,7 @@ void make_v1_tx_proposal_v1(std::vector<LegacyInputProposalV1> legacy_input_prop
     const DiscretizedFee discretized_transaction_fee,
     std::vector<ExtraFieldElement> additional_memo_elements,
     SpTxProposalV1 &tx_proposal_out);
-void make_v1_tx_proposal_v1(const std::vector<LegacyContextualEnoteRecordV1> &legacy_contextual_inputs,
+void make_v1_tx_proposal_v1(const std::vector<LegacyContextualEnoteRecordVariant> &legacy_contextual_inputs,
     const std::vector<SpContextualEnoteRecordV1> &sp_contextual_inputs,
     std::vector<jamtis::JamtisPaymentProposalV1> normal_payment_proposals,
     std::vector<jamtis::JamtisPaymentProposalSelfSendV1> selfsend_payment_proposals,

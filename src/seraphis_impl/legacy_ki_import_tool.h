@@ -74,7 +74,7 @@ struct LegacyKIImportCheckpoint final
     /// [ block index : block id ] in the range of blocks subject to this import cycle
     std::map<std::uint64_t, rct::key> block_id_checkpoints;
     /// [ legacy identifier : legacy intermediate records ] for legacy enotes subject to this import cycle
-    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1> legacy_intermediate_records;
+    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordVariant> legacy_intermediate_records;
 };
 
 /**

@@ -98,14 +98,14 @@ bool legacy_enote_has_highest_amount_in_set(const rct::key &specified_enote_iden
 * outparam: sp_contextual_records_out -
 */
 void split_selected_input_set(const input_set_tracker_t &input_set,
-    std::vector<LegacyContextualEnoteRecordV1> &legacy_contextual_records_out,
+    std::vector<LegacyContextualEnoteRecordVariant> &legacy_contextual_records_out,
     std::vector<SpContextualEnoteRecordV1> &sp_contextual_records_out);
 /**
 * brief: total_amount - get the total amount in a set of contextual records
 * param: contextual_records -
 * return: the sum of amounts in the records
 */
-boost::multiprecision::uint128_t total_amount(const std::vector<LegacyContextualEnoteRecordV1> &contextual_records);
+boost::multiprecision::uint128_t total_amount(const std::vector<LegacyContextualEnoteRecordVariant> &contextual_records);
 boost::multiprecision::uint128_t total_amount(const std::vector<SpContextualEnoteRecordV1> &contextual_records);
 /**
 * brief: try_get_membership_proof_real_reference_mappings - map a set of records' key images to the on-chain enote indices
@@ -113,7 +113,7 @@ boost::multiprecision::uint128_t total_amount(const std::vector<SpContextualEnot
 * param: contextual_records -
 * outparam: enote_ledger_mappings_out -
 */
-bool try_get_membership_proof_real_reference_mappings(const std::vector<LegacyContextualEnoteRecordV1> &contextual_records,
+bool try_get_membership_proof_real_reference_mappings(const std::vector<LegacyContextualEnoteRecordVariant> &contextual_records,
     std::unordered_map<crypto::key_image, std::uint64_t> &enote_ledger_mappings_out);
 bool try_get_membership_proof_real_reference_mappings(const std::vector<SpContextualEnoteRecordV1> &contextual_records,
     std::unordered_map<crypto::key_image, std::uint64_t> &enote_ledger_mappings_out);
@@ -170,6 +170,10 @@ bool try_bump_enote_record_origin_status_v1(const SpEnoteSpentStatus spent_statu
 void update_contextual_enote_record_contexts_v1(const LegacyEnoteOriginContextV1 &new_origin_context,
     const SpEnoteSpentContextV1 &new_spent_context,
     LegacyEnoteOriginContextV1 &origin_context_inout,
+    SpEnoteSpentContextV1 &spent_context_inout);
+void update_contextual_enote_record_contexts_v1(const LegacyEnoteOriginContextV2 &new_origin_context,
+    const SpEnoteSpentContextV1 &new_spent_context,
+    LegacyEnoteOriginContextV2 &origin_context_inout,
     SpEnoteSpentContextV1 &spent_context_inout);
 void update_contextual_enote_record_contexts_v1(const SpEnoteOriginContextV1 &new_origin_context,
     const SpEnoteSpentContextV1 &new_spent_context,

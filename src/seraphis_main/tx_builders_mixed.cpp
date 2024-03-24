@@ -182,16 +182,16 @@ static bool same_key_image(const SpPartialInputV1 &partial_input, const SpInputP
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
 static void legacy_enote_records_to_input_proposals(
-    const std::vector<LegacyContextualEnoteRecordV1> &legacy_contextual_records,
+    const std::vector<LegacyContextualEnoteRecordVariant> &legacy_contextual_records,
     std::vector<LegacyInputProposalV1> &legacy_input_proposals_out)
 {
     legacy_input_proposals_out.clear();
     legacy_input_proposals_out.reserve(legacy_contextual_records.size());
 
-    for (const LegacyContextualEnoteRecordV1 &legacy_contextual_input : legacy_contextual_records)
+    for (const LegacyContextualEnoteRecordVariant &legacy_contextual_input : legacy_contextual_records)
     {
         // convert legacy inputs to input proposals
-        make_v1_legacy_input_proposal_v1(legacy_contextual_input.record,
+        make_v1_legacy_input_proposal_v1(enote_record_ref(legacy_contextual_input),
             rct::rct2sk(rct::skGen()),
             tools::add_element(legacy_input_proposals_out));
     }
@@ -856,7 +856,7 @@ void make_v1_tx_proposal_v1(std::vector<LegacyInputProposalV1> legacy_input_prop
     make_tx_extra(std::move(additional_memo_elements), tx_proposal_out.partial_memo);
 }
 //-------------------------------------------------------------------------------------------------------------------
-void make_v1_tx_proposal_v1(const std::vector<LegacyContextualEnoteRecordV1> &legacy_contextual_inputs,
+void make_v1_tx_proposal_v1(const std::vector<LegacyContextualEnoteRecordVariant> &legacy_contextual_inputs,
     const std::vector<SpContextualEnoteRecordV1> &sp_contextual_inputs,
     std::vector<jamtis::JamtisPaymentProposalV1> normal_payment_proposals,
     std::vector<jamtis::JamtisPaymentProposalSelfSendV1> selfsend_payment_proposals,

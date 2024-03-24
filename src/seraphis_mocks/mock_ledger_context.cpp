@@ -620,7 +620,7 @@ std::uint64_t MockLedgerContext::pop_chain_at_index(const std::uint64_t pop_inde
             {
                 // TODO : make sure the following assumptions are correct:
                 // - this function gets called in a reorg
-                // - there should'nt be any reorgs for pre rct era now
+                // - there shouldn't be any reorgs for pre rct era now
                 //   therefore:
                 //      - we don't need unit_tests for popping blocks in pre-rct era
                 //      - we can just use the zero amount here

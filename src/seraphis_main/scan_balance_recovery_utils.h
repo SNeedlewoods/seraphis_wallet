@@ -149,7 +149,7 @@ void process_chunk_intermediate_legacy(const rct::key &legacy_base_spend_pubkey,
     const std::list<SpContextualKeyImageSetV1> &chunk_contextual_key_images,
     hw::device &hwdev,
     // note: mapped to H32(Ko, a) so enotes with the same key image but different amounts will be recovered
-    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1> &found_enote_records_out,
+    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordVariant> &found_enote_records_out,
     std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> &found_spent_key_images_out);
 /**
 * brief: process_chunk_full_legacy - process a chunk of contextual basic records with legacy view and spend privkeys
@@ -171,7 +171,7 @@ void process_chunk_full_legacy(const rct::key &legacy_base_spend_pubkey,
     const std::unordered_map<rct::key, std::list<ContextualBasicRecordVariant>> &chunk_basic_records_per_tx,
     const std::list<SpContextualKeyImageSetV1> &chunk_contextual_key_images,
     hw::device &hwdev,
-    std::unordered_map<rct::key, LegacyContextualEnoteRecordV1> &found_enote_records_out,
+    std::unordered_map<rct::key, LegacyContextualEnoteRecordVariant> &found_enote_records_out,
     std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> &found_spent_key_images_out);
 /**
 * brief: process_chunk_intermediate_sp - process a chunk of contextual basic records with seraphis {kx_ua, kx_fr, s_ga}

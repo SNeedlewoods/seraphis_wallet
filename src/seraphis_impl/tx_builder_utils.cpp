@@ -67,7 +67,7 @@ bool try_prepare_inputs_and_outputs_for_transfer_v1(const jamtis::JamtisDestinat
     std::vector<jamtis::JamtisPaymentProposalV1> normal_payment_proposals,
     std::vector<jamtis::JamtisPaymentProposalSelfSendV1> selfsend_payment_proposals,
     const crypto::secret_key &k_view_balance,
-    std::vector<LegacyContextualEnoteRecordV1> &legacy_contextual_inputs_out,
+    std::vector<LegacyContextualEnoteRecordVariant> &legacy_contextual_inputs_out,
     std::vector<SpContextualEnoteRecordV1> &sp_contextual_inputs_out,
     std::vector<jamtis::JamtisPaymentProposalV1> &final_normal_payment_proposals_out,
     std::vector<jamtis::JamtisPaymentProposalSelfSendV1> &final_selfsend_payment_proposals_out,

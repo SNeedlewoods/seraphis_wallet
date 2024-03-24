@@ -156,7 +156,6 @@ std::uint64_t block_timestamp_ref(const LegacyEnoteOriginContextVariant &variant
 const rct::key& transaction_id_ref(const LegacyEnoteOriginContextVariant &variant);
 std::uint64_t enote_ledger_index_ref(const LegacyEnoteOriginContextVariant &variant);
 SpEnoteOriginStatus origin_status_ref(const LegacyEnoteOriginContextVariant &variant);
-void origin_status_ref(const LegacyEnoteOriginContextVariant &variant, SpEnoteOriginStatus &origin_status_out);
 std::uint64_t enote_version_dependent_index_ref(const LegacyEnoteOriginContextVariant &variant);
 
 ////
@@ -244,10 +243,18 @@ struct LegacyContextualIntermediateEnoteRecordV2 final
     LegacyEnoteOriginContextV2 origin_context;
 };
 
+using LegacyContextualIntermediateEnoteRecordVariant =
+        tools::variant<LegacyContextualIntermediateEnoteRecordV1, LegacyContextualIntermediateEnoteRecordV2>;
 /// get the record's onetime address
-const rct::key& onetime_address_ref(const LegacyContextualIntermediateEnoteRecordV1 &record);
+const rct::key& onetime_address_ref(const LegacyContextualIntermediateEnoteRecordVariant &variant);
 /// get the record's amount
-rct::xmr_amount amount_ref(const LegacyContextualIntermediateEnoteRecordV1 &record);
+rct::xmr_amount amount_ref(const LegacyContextualIntermediateEnoteRecordVariant &variant);
+/// get the record's origin context block index
+std::uint64_t block_index_ref(const LegacyContextualIntermediateEnoteRecordVariant &variant);
+/// get the enote record
+LegacyIntermediateEnoteRecord enote_record_ref(const LegacyContextualIntermediateEnoteRecordVariant &variant);
+/// get the record's origin status
+const SpEnoteOriginStatus& origin_status_ref(const LegacyContextualIntermediateEnoteRecordVariant &variant);
 
 ////
 // LegacyContextualEnoteRecordV1
@@ -279,10 +286,25 @@ struct LegacyContextualEnoteRecordV2 final
     SpEnoteSpentContextV1 spent_context;
 };
 
+using LegacyContextualEnoteRecordVariant =
+        tools::variant<LegacyContextualEnoteRecordV1, LegacyContextualEnoteRecordV2>;
 /// get the record's key image
-const crypto::key_image& key_image_ref(const LegacyContextualEnoteRecordV1 &record);
+const crypto::key_image& key_image_ref(const LegacyContextualEnoteRecordVariant &record);
 /// get the record's amount
-rct::xmr_amount amount_ref(const LegacyContextualEnoteRecordV1 &record);
+rct::xmr_amount amount_ref(const LegacyContextualEnoteRecordVariant &record);
+/// get the record's origin context block index
+std::uint64_t block_index_ref(const LegacyContextualEnoteRecordVariant &variant);
+/// get the enote record
+const LegacyEnoteRecord& enote_record_ref(const LegacyContextualEnoteRecordVariant &variant);
+/// get the record's origin status
+const SpEnoteOriginStatus& origin_status_ref(const LegacyContextualEnoteRecordVariant &variant);
+/// get the record's origin context
+LegacyEnoteOriginContextVariant origin_context_ref(const LegacyContextualEnoteRecordVariant &variant);
+/// get the record's spent context
+void spent_context_ref(const LegacyContextualEnoteRecordVariant &variant, SpEnoteSpentContextV1 &spent_context);
+const SpEnoteSpentContextV1& spent_context_ref(const LegacyContextualEnoteRecordVariant &variant);
+/// clear the spent context
+void clear_spent_context(LegacyContextualEnoteRecordVariant &variant);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////// Seraphis ///////////////////////////////////////////////////
@@ -361,7 +383,8 @@ std::uint64_t block_index_ref(const ContextualBasicRecordVariant &variant);
 // amount_ref(): get the record's amount
 // spent_context_ref(): get the record's spent context
 ///
-using ContextualRecordVariant = tools::variant<LegacyContextualEnoteRecordV1, SpContextualEnoteRecordV1>;
+using ContextualRecordVariant = tools::variant<LegacyContextualEnoteRecordV1,
+        LegacyContextualEnoteRecordV2, SpContextualEnoteRecordV1>;
 rct::xmr_amount amount_ref(const ContextualRecordVariant &variant);
 const SpEnoteSpentContextV1& spent_context_ref(const ContextualRecordVariant &variant);
 
@@ -385,25 +408,29 @@ struct SpContextualKeyImageSetV1 final
 
 /// check if a context is older than another (returns false if apparently the same age, or younger)
 bool is_older_than(const LegacyEnoteOriginContextV1 &context, const LegacyEnoteOriginContextV1 &other_context);
+bool is_older_than(const LegacyEnoteOriginContextV2 &context, const LegacyEnoteOriginContextV2 &other_context);
 bool is_older_than(const SpEnoteOriginContextV1 &context, const SpEnoteOriginContextV1 &other_context);
 bool is_older_than(const SpEnoteSpentContextV1 &context, const SpEnoteSpentContextV1 &other_context);
 /// check if records have onetime address equivalence
 bool have_same_destination(const LegacyContextualBasicEnoteRecordV1 &a,
     const LegacyContextualBasicEnoteRecordV1 &b);
-bool have_same_destination(const LegacyContextualIntermediateEnoteRecordV1 &a,
-    const LegacyContextualIntermediateEnoteRecordV1 &b);
-bool have_same_destination(const LegacyContextualEnoteRecordV1 &a, const LegacyContextualEnoteRecordV1 &b);
+bool have_same_destination(const LegacyContextualIntermediateEnoteRecordVariant &a,
+    const LegacyContextualIntermediateEnoteRecordVariant &b);
+bool have_same_destination(const LegacyContextualEnoteRecordVariant &a,
+        const LegacyContextualEnoteRecordVariant &b);
+bool have_same_destination(const LegacyContextualEnoteRecordVariant &a,
+        const LegacyContextualEnoteRecordVariant &b);
 bool have_same_destination(const SpContextualBasicEnoteRecordV1 &a, const SpContextualBasicEnoteRecordV1 &b);
 bool have_same_destination(const SpContextualIntermediateEnoteRecordV1 &a,
     const SpContextualIntermediateEnoteRecordV1 &b);
 bool have_same_destination(const SpContextualEnoteRecordV1 &a, const SpContextualEnoteRecordV1 &b);
 /// check origin status
-bool has_origin_status(const LegacyContextualIntermediateEnoteRecordV1 &record, const SpEnoteOriginStatus test_status);
-bool has_origin_status(const LegacyContextualEnoteRecordV1 &record, const SpEnoteOriginStatus test_status);
+bool has_origin_status(const LegacyContextualIntermediateEnoteRecordVariant &record, const SpEnoteOriginStatus test_status);
+bool has_origin_status(const LegacyContextualEnoteRecordVariant &record, const SpEnoteOriginStatus test_status);
 bool has_origin_status(const SpContextualIntermediateEnoteRecordV1 &record, const SpEnoteOriginStatus test_status);
 bool has_origin_status(const SpContextualEnoteRecordV1 &record, const SpEnoteOriginStatus test_status);
 /// check spent status
-bool has_spent_status(const LegacyContextualEnoteRecordV1 &record, const SpEnoteSpentStatus test_status);
+bool has_spent_status(const LegacyContextualEnoteRecordVariant &record, const SpEnoteSpentStatus test_status);
 bool has_spent_status(const SpContextualEnoteRecordV1 &record, const SpEnoteSpentStatus test_status);
 /// check if a key image is present in a key image set
 bool has_key_image(const SpContextualKeyImageSetV1 &key_image_set, const crypto::key_image &test_key_image);

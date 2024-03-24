@@ -61,7 +61,7 @@ static void prepare_enote_store(const std::vector<rct::xmr_amount> &legacy_amoun
         temp_record.key_image = rct::rct2ki(rct::pkGen());
 
         enote_store_inout.add_record(
-                LegacyContextualEnoteRecordV1{
+                LegacyContextualEnoteRecordV2{
                     .record = temp_record
                 }
             );
@@ -127,7 +127,7 @@ static void input_selection_test_full(const std::vector<rct::xmr_amount> &stored
                 selected_input_set)
         };
 
-    std::vector<LegacyContextualEnoteRecordV1> legacy_contextual_inputs;
+    std::vector<LegacyContextualEnoteRecordVariant> legacy_contextual_inputs;
     std::vector<SpContextualEnoteRecordV1> sp_contextual_inputs;
 
     split_selected_input_set(selected_input_set, legacy_contextual_inputs, sp_contextual_inputs);
@@ -149,7 +149,7 @@ static void input_selection_test_full(const std::vector<rct::xmr_amount> &stored
 
     std::size_t input_index{0};
     boost::multiprecision::uint128_t total_input_amount{0};
-    for (const LegacyContextualEnoteRecordV1 &legacy_input_selected : legacy_contextual_inputs)
+    for (const LegacyContextualEnoteRecordVariant &legacy_input_selected : legacy_contextual_inputs)
     {
         CHECK_AND_ASSERT_THROW_MES(amount_ref(legacy_input_selected) == input_legacy_amounts_expected[input_index],
             "selected legacy inputs expected amount mismatch");

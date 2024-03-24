@@ -106,7 +106,7 @@ void ChunkConsumerMockLegacyIntermediate::consume_nonledger_chunk(const SpEnoteO
     const scanning::ChunkData &chunk_data)
 {
     // 1. process the chunk
-    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1> found_enote_records;
+    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordVariant> found_enote_records;
     std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> found_spent_key_images;
 
     scanning::process_chunk_intermediate_legacy(m_legacy_base_spend_pubkey,
@@ -144,7 +144,7 @@ void ChunkConsumerMockLegacyIntermediate::consume_onchain_chunk(const scanning::
     CHECK_AND_ASSERT_THROW_MES(chunk_data, "chunk consumer mock legacy intermediate: no chunk data.");
 
     // 2. process the chunk
-    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordV1> found_enote_records;
+    std::unordered_map<rct::key, LegacyContextualIntermediateEnoteRecordVariant> found_enote_records;
     std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> found_spent_key_images;
 
     scanning::process_chunk_intermediate_legacy(m_legacy_base_spend_pubkey,
@@ -210,7 +210,7 @@ void ChunkConsumerMockLegacy::consume_nonledger_chunk(const SpEnoteOriginStatus 
     const scanning::ChunkData &chunk_data)
 {
     // 1. process the chunk
-    std::unordered_map<rct::key, LegacyContextualEnoteRecordV1> found_enote_records;
+    std::unordered_map<rct::key, LegacyContextualEnoteRecordVariant> found_enote_records;
     std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> found_spent_key_images;
 
     scanning::process_chunk_full_legacy(m_legacy_base_spend_pubkey,
@@ -244,7 +244,7 @@ void ChunkConsumerMockLegacy::consume_onchain_chunk(const scanning::LedgerChunk 
     CHECK_AND_ASSERT_THROW_MES(chunk_data, "chunk consumer mock legacy: no chunk data.");
 
     // 2. process the chunk
-    std::unordered_map<rct::key, LegacyContextualEnoteRecordV1> found_enote_records;
+    std::unordered_map<rct::key, LegacyContextualEnoteRecordVariant> found_enote_records;
     std::unordered_map<crypto::key_image, SpEnoteSpentContextV1> found_spent_key_images;
 
     scanning::process_chunk_full_legacy(m_legacy_base_spend_pubkey,

@@ -145,7 +145,7 @@ public:
     */
     void remove_tx_from_unconfirmed_cache(const rct::key &tx_id);
     /**
-    * brief: add_legacy_cn_coinbase - make a block with a mock legacy pre-RingCT coinbase tx containing legacy key images)
+    * brief: add_legacy_cn_coinbase - make a block with a mock legacy pre-RingCT coinbase tx (containing legacy key images)
     * param: tx_id -
     * param: unlock_time -
     * param: memo -

@@ -131,7 +131,7 @@ bool legacy_enote_has_highest_amount_in_set(const rct::key &specified_enote_iden
 }
 //-------------------------------------------------------------------------------------------------------------------
 void split_selected_input_set(const input_set_tracker_t &input_set,
-    std::vector<LegacyContextualEnoteRecordV1> &legacy_contextual_records_out,
+    std::vector<LegacyContextualEnoteRecordVariant> &legacy_contextual_records_out,
     std::vector<SpContextualEnoteRecordV1> &sp_contextual_records_out)
 {
     legacy_contextual_records_out.clear();
@@ -144,12 +144,18 @@ void split_selected_input_set(const input_set_tracker_t &input_set,
 
         for (const auto &mapped_contextual_enote_record : input_set.at(InputSelectionType::LEGACY))
         {
-            CHECK_AND_ASSERT_THROW_MES(mapped_contextual_enote_record.second.is_type<LegacyContextualEnoteRecordV1>(),
+            CHECK_AND_ASSERT_THROW_MES(mapped_contextual_enote_record.second.is_type<LegacyContextualEnoteRecordV1>() ||
+                    mapped_contextual_enote_record.second.is_type<LegacyContextualEnoteRecordV2>(),
                 "splitting an input set: record is supposed to be legacy but is not.");
 
-            legacy_contextual_records_out.emplace_back(
-                    mapped_contextual_enote_record.second.unwrap<LegacyContextualEnoteRecordV1>()
-                );
+            if (mapped_contextual_enote_record.second.is_type<LegacyContextualEnoteRecordV1>())
+                legacy_contextual_records_out.emplace_back(
+                        mapped_contextual_enote_record.second.unwrap<LegacyContextualEnoteRecordV1>()
+                    );
+            else
+                legacy_contextual_records_out.emplace_back(
+                        mapped_contextual_enote_record.second.unwrap<LegacyContextualEnoteRecordV2>()
+                    );
         }
     }
 
@@ -170,11 +176,11 @@ void split_selected_input_set(const input_set_tracker_t &input_set,
     }
 }
 //-------------------------------------------------------------------------------------------------------------------
-boost::multiprecision::uint128_t total_amount(const std::vector<LegacyContextualEnoteRecordV1> &contextual_records)
+boost::multiprecision::uint128_t total_amount(const std::vector<LegacyContextualEnoteRecordVariant> &contextual_records)
 {
     boost::multiprecision::uint128_t total_amount{0};
 
-    for (const LegacyContextualEnoteRecordV1 &contextual_record : contextual_records)
+    for (const LegacyContextualEnoteRecordVariant &contextual_record : contextual_records)
         total_amount += amount_ref(contextual_record);
 
     return total_amount;
@@ -190,21 +196,25 @@ boost::multiprecision::uint128_t total_amount(const std::vector<SpContextualEnot
     return total_amount;
 }
 //-------------------------------------------------------------------------------------------------------------------
-bool try_get_membership_proof_real_reference_mappings(const std::vector<LegacyContextualEnoteRecordV1> &contextual_records,
+bool try_get_membership_proof_real_reference_mappings(const std::vector<LegacyContextualEnoteRecordVariant> &contextual_records,
     std::unordered_map<crypto::key_image, std::uint64_t> &enote_ledger_mappings_out)
 {
     enote_ledger_mappings_out.clear();
     enote_ledger_mappings_out.reserve(contextual_records.size());
 
-    for (const LegacyContextualEnoteRecordV1 &contextual_record : contextual_records)
+    for (const LegacyContextualEnoteRecordVariant &contextual_record : contextual_records)
     {
         // 1. only onchain enotes have ledger indices
         if (!has_origin_status(contextual_record, SpEnoteOriginStatus::ONCHAIN))
             return false;
 
         // 2. save the [ KI : enote ledger index ] entry
-        enote_ledger_mappings_out[key_image_ref(contextual_record)] =
-            enote_ledger_index_ref(contextual_record.origin_context);
+        if (contextual_record.is_type<LegacyContextualEnoteRecordV1>())
+            enote_ledger_mappings_out[key_image_ref(contextual_record)] =
+                enote_ledger_index_ref(contextual_record.unwrap<LegacyContextualEnoteRecordV1>().origin_context);
+        else if (contextual_record.is_type<LegacyContextualEnoteRecordV2>())
+            enote_ledger_mappings_out[key_image_ref(contextual_record)] =
+                enote_ledger_index_ref(contextual_record.unwrap<LegacyContextualEnoteRecordV2>().origin_context);
     }
 
     return true;
@@ -344,9 +354,22 @@ void update_contextual_enote_record_contexts_v1(const LegacyEnoteOriginContextV1
     try_update_enote_spent_context_v1(new_spent_context, spent_context_inout);
 
     // 3. bump the origin status based on the new spent status
-    SpEnoteOriginStatus origin_status_out;
-    origin_status_ref(origin_context_inout, origin_status_out);
-    try_bump_enote_record_origin_status_v1(spent_context_inout.spent_status, origin_status_out);
+    try_bump_enote_record_origin_status_v1(spent_context_inout.spent_status, origin_context_inout.origin_status);
+}
+//-------------------------------------------------------------------------------------------------------------------
+void update_contextual_enote_record_contexts_v1(const LegacyEnoteOriginContextV2 &new_origin_context,
+    const SpEnoteSpentContextV1 &new_spent_context,
+    LegacyEnoteOriginContextV2 &origin_context_inout,
+    SpEnoteSpentContextV1 &spent_context_inout)
+{
+    // 1. update the origin context
+    try_update_enote_origin_context_v1(new_origin_context, origin_context_inout);
+
+    // 2. update the spent context
+    try_update_enote_spent_context_v1(new_spent_context, spent_context_inout);
+
+    // 3. bump the origin status based on the new spent status
+    try_bump_enote_record_origin_status_v1(spent_context_inout.spent_status, origin_context_inout.origin_status);
 }
 //-------------------------------------------------------------------------------------------------------------------
 void update_contextual_enote_record_contexts_v1(const SpEnoteOriginContextV1 &new_origin_context,
