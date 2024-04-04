@@ -301,7 +301,6 @@ const SpEnoteOriginStatus& origin_status_ref(const LegacyContextualEnoteRecordVa
 /// get the record's origin context
 LegacyEnoteOriginContextVariant origin_context_ref(const LegacyContextualEnoteRecordVariant &variant);
 /// get the record's spent context
-void spent_context_ref(const LegacyContextualEnoteRecordVariant &variant, SpEnoteSpentContextV1 &spent_context);
 const SpEnoteSpentContextV1& spent_context_ref(const LegacyContextualEnoteRecordVariant &variant);
 /// clear the spent context
 void clear_spent_context(LegacyContextualEnoteRecordVariant &variant);

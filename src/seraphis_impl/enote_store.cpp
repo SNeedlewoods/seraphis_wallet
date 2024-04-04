@@ -1306,12 +1306,10 @@ void SpEnoteStore::add_record(const LegacyContextualEnoteRecordV1 &new_record,
     }
     else
     {
-        SpEnoteSpentContextV1 spent_context;
-        spent_context_ref(m_legacy_contextual_enote_records[new_record_identifier], spent_context);
         update_contextual_enote_record_contexts_v1(new_record.origin_context,
                 new_record.spent_context,
                 origin_context_ref(m_legacy_contextual_enote_records[new_record_identifier]).unwrap<LegacyEnoteOriginContextV1>(),
-                spent_context
+                m_legacy_contextual_enote_records[new_record_identifier].unwrap<LegacyContextualEnoteRecordV1>().spent_context
             );
         events_inout.emplace_back(UpdatedLegacyOriginContext{new_record_identifier});
         events_inout.emplace_back(UpdatedLegacySpentContext{new_record_identifier});
@@ -1323,10 +1321,8 @@ void SpEnoteStore::add_record(const LegacyContextualEnoteRecordV1 &new_record,
         m_legacy_key_images_in_sp_selfsends.end())
     {
         // update the record's spent context
-        SpEnoteSpentContextV1 spent_context;
-        spent_context_ref(m_legacy_contextual_enote_records[new_record_identifier], spent_context);
         try_update_enote_spent_context_v1(m_legacy_key_images_in_sp_selfsends.at(new_record.record.key_image),
-            spent_context);
+            m_legacy_contextual_enote_records[new_record_identifier].unwrap<LegacyContextualEnoteRecordV1>().spent_context);
         //don't add event record: assume it would be redundant
 
         // note: do not change the tracker's spent context here, the tracker is a helper cache for the scanning process
@@ -1355,11 +1351,9 @@ void SpEnoteStore::add_record(const LegacyContextualEnoteRecordV1 &new_record,
             continue;
 
         // b. update the spent context
-        SpEnoteSpentContextV1 spent_context;
-        spent_context_ref(m_legacy_contextual_enote_records[new_record_identifier], spent_context);
         try_update_enote_spent_context_v1(
             spent_context_ref(m_legacy_contextual_enote_records.at(legacy_enote_identifier)),
-            spent_context);
+            m_legacy_contextual_enote_records[new_record_identifier].unwrap<LegacyContextualEnoteRecordV1>().spent_context);
         //don't add event record: assume it would be redundant
     }
 
@@ -1400,12 +1394,10 @@ void SpEnoteStore::add_record(const LegacyContextualEnoteRecordV2 &new_record,
     }
     else
     {
-        SpEnoteSpentContextV1 spent_context;
-        spent_context_ref(m_legacy_contextual_enote_records[new_record_identifier], spent_context);
         update_contextual_enote_record_contexts_v1(new_record.origin_context,
                 new_record.spent_context,
                 origin_context_ref(m_legacy_contextual_enote_records[new_record_identifier]).unwrap<LegacyEnoteOriginContextV2>(),
-                spent_context
+                m_legacy_contextual_enote_records[new_record_identifier].unwrap<LegacyContextualEnoteRecordV1>().spent_context
             );
         events_inout.emplace_back(UpdatedLegacyOriginContext{new_record_identifier});
         events_inout.emplace_back(UpdatedLegacySpentContext{new_record_identifier});
@@ -1417,10 +1409,8 @@ void SpEnoteStore::add_record(const LegacyContextualEnoteRecordV2 &new_record,
         m_legacy_key_images_in_sp_selfsends.end())
     {
         // update the record's spent context
-        SpEnoteSpentContextV1 spent_context;
-        spent_context_ref(m_legacy_contextual_enote_records[new_record_identifier], spent_context);
         try_update_enote_spent_context_v1(m_legacy_key_images_in_sp_selfsends.at(new_record.record.key_image),
-            spent_context);
+            m_legacy_contextual_enote_records[new_record_identifier].unwrap<LegacyContextualEnoteRecordV1>().spent_context);
         //don't add event record: assume it would be redundant
 
         // note: do not change the tracker's spent context here, the tracker is a helper cache for the scanning process
@@ -1449,11 +1439,9 @@ void SpEnoteStore::add_record(const LegacyContextualEnoteRecordV2 &new_record,
             continue;
 
         // b. update the spent context
-        SpEnoteSpentContextV1 spent_context;
-        spent_context_ref(m_legacy_contextual_enote_records[new_record_identifier], spent_context);
         try_update_enote_spent_context_v1(
             spent_context_ref(m_legacy_contextual_enote_records.at(legacy_enote_identifier)),
-            spent_context);
+            m_legacy_contextual_enote_records[new_record_identifier].unwrap<LegacyContextualEnoteRecordV1>().spent_context);
         //don't add event record: assume it would be redundant
     }
 
@@ -1529,20 +1517,18 @@ void SpEnoteStore::update_legacy_with_fresh_found_spent_key_images(
 
             LegacyContextualEnoteRecordV1* record_v1 = record_ref->second.try_unwrap<LegacyContextualEnoteRecordV1>();
             LegacyContextualEnoteRecordV2* record_v2 = record_ref->second.try_unwrap<LegacyContextualEnoteRecordV2>();
-            SpEnoteSpentContextV1 spent_context;
-            spent_context_ref(record_ref->second, spent_context);
             if (record_v1)
                 update_contextual_enote_record_contexts_v1(
                     record_v1->origin_context,
                     found_spent_key_image.second,
                     record_v1->origin_context,
-                    spent_context);
+                    record_ref->second.unwrap<LegacyContextualEnoteRecordV1>().spent_context);
             else if (record_v2)
                 update_contextual_enote_record_contexts_v1(
                     record_v2->origin_context,
                     found_spent_key_image.second,
                     record_v2->origin_context,
-                    spent_context);
+                    record_ref->second.unwrap<LegacyContextualEnoteRecordV2>().spent_context);
             else
                 CHECK_AND_ASSERT_THROW_MES(false, "LegacyContextualEnoteRecord not implemented");
             events_inout.emplace_back(UpdatedLegacyOriginContext{identifier_of_enote_to_update});
@@ -1607,10 +1593,13 @@ void SpEnoteStore::handle_legacy_key_images_from_sp_selfsends(
                 continue;
 
             // b. update the spent context of this legacy enote
-            SpEnoteSpentContextV1 spent_context;
-            spent_context_ref(record_ref->second, spent_context);
             if (try_update_enote_spent_context_v1(legacy_key_image_with_spent_context.second,
-                    spent_context))
+                    // TODO : after some testing I think it doesn't matter if we unwrap to V1 or V2 here,
+                    //        both structures have the same size and they only differ in the origin context versions
+                    //        and the origin contexts V1 and V2 are also the same size and only differ in the name of
+                    //        one variable (enote_same_amount_ledger_index / rct_enote_ledger_index)
+                    //        if this assumption is correct I can probably revisit other parts of the code and clean them up
+                    record_ref->second.unwrap<LegacyContextualEnoteRecordV2>().spent_context))
                 events_inout.emplace_back(UpdatedLegacySpentContext{record_ref->first});
         }
     }

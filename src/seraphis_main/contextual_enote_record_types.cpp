@@ -285,15 +285,6 @@ LegacyEnoteOriginContextVariant origin_context_ref(const LegacyContextualEnoteRe
     return variant.visit(visitor());
 }
 //-------------------------------------------------------------------------------------------------------------------
-void spent_context_ref(const LegacyContextualEnoteRecordVariant &variant, SpEnoteSpentContextV1& spent_context_out)
-{
-    if (variant.is_type<LegacyContextualEnoteRecordV1>())
-        spent_context_out = variant.unwrap<LegacyContextualEnoteRecordV1>().spent_context;
-    else if (variant.is_type<LegacyContextualEnoteRecordV2>())
-        spent_context_out = variant.unwrap<LegacyContextualEnoteRecordV2>().spent_context;
-    // TODO : else = assert?
-}
-//-------------------------------------------------------------------------------------------------------------------
 const SpEnoteSpentContextV1& spent_context_ref(const LegacyContextualEnoteRecordVariant &variant)
 {
     struct visitor final : public tools::variant_static_visitor<const SpEnoteSpentContextV1&>
