@@ -99,7 +99,7 @@ static boost::multiprecision::uint128_t get_balance_intermediate_legacy(
             current_record_amount = current_contextual_record_v2->record.amount;
         }
         else
-            CHECK_AND_ASSERT_THROW_MES(false, "LegacyContextualIntermediateEnoteRecord not implemented");
+            CHECK_AND_ASSERT_THROW_MES(false, "LegacyContextualIntermediateEnoteRecord version not implemented");
 
         // a. ignore this enote if its origin status is not requested
         if (origin_statuses.find(current_record_origin_status) == origin_statuses.end())
@@ -205,7 +205,7 @@ static boost::multiprecision::uint128_t get_balance_full_legacy(
             current_record_spent_context = current_contextual_record_v2->spent_context;
         }
         else
-            CHECK_AND_ASSERT_THROW_MES(false, "LegacyContextualEnoteRecord not implemented");
+            CHECK_AND_ASSERT_THROW_MES(false, "LegacyContextualEnoteRecord version not implemented");
 
 
         // a. ignore this enote if its origin status is not requested
@@ -229,7 +229,6 @@ static boost::multiprecision::uint128_t get_balance_full_legacy(
             continue;
 
         // d. ignore enotes that share onetime addresses with other enotes but don't have the highest amount among them
-        // TODO NOW : tests fail here :  onetime_address_ref returns zero key
         CHECK_AND_ASSERT_THROW_MES(legacy_onetime_address_identifier_map
                     .find(onetime_address_ref(current_record_enote)) !=
                 legacy_onetime_address_identifier_map.end(),

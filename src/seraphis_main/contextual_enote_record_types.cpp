@@ -305,7 +305,8 @@ void clear_spent_context(LegacyContextualEnoteRecordVariant &variant)
         variant.unwrap<LegacyContextualEnoteRecordV1>().spent_context = SpEnoteSpentContextV1{};
     else if (variant.is_type<LegacyContextualEnoteRecordV2>())
         variant.unwrap<LegacyContextualEnoteRecordV2>().spent_context = SpEnoteSpentContextV1{};
-    // TODO : else = assert?
+    else
+        CHECK_AND_ASSERT_THROW_MES(false, "LegacyContextualEnoteRecord version not implemented");
 }
 //-------------------------------------------------------------------------------------------------------------------
 const rct::key& onetime_address_ref(const SpContextualIntermediateEnoteRecordV1 &record)

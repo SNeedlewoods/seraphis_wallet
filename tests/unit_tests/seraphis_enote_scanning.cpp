@@ -2637,7 +2637,6 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_1)
         enote_ephemeral_privkey_6,
         enote_v3_2));
 
-    // QUESTION : Shouldn't this rather be called enote_v5_1?
     LegacyEnoteV5 enote_v4_1;  //to normal destination
     const crypto::secret_key enote_ephemeral_privkey_7{make_secret_key()};
     const rct::key enote_ephemeral_pubkey_7{
@@ -2651,7 +2650,6 @@ TEST(seraphis_enote_scanning, legacy_pre_transition_1)
         enote_ephemeral_privkey_7,
         enote_v4_1));
 
-    // QUESTION : and this enote_v5_2?
     LegacyEnoteV5 enote_v4_2;  //to subaddress destination
     const crypto::secret_key enote_ephemeral_privkey_8{make_secret_key()};
     const rct::key enote_ephemeral_pubkey_8{

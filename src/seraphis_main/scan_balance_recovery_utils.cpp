@@ -100,9 +100,13 @@ static bool try_view_scan_legacy_enote_v1(const rct::key &legacy_base_spend_pubk
     } catch (...) { return false; }
 
     // 2. set the origin context
-    // TODO : pipe 'transaction era'
-    if (false /*transaction_era == cryptonote*/)
+    // TODO : got the height from here https://www.getmonero.org/resources/moneropedia/ringCT.html
+    //        but it's probably wrong because that's not the height where RingCT became mandatory
+    //        and I'm not sure how to handle the transition phase from CryptoNote to RingCT where both types were allowed
+//    if (block_index < 1220516 /* first RingCT block */)
+    if (false)
     {
+        // CryptoNote era
         contextual_record_out.origin_context =
             LegacyEnoteOriginContextV1{
                     .block_index                    = block_index,
@@ -117,6 +121,7 @@ static bool try_view_scan_legacy_enote_v1(const rct::key &legacy_base_spend_pubk
     }
     else
     {
+        // RingCT era
         contextual_record_out.origin_context =
             LegacyEnoteOriginContextV2{
                     .block_index            = block_index,
@@ -728,7 +733,7 @@ void process_chunk_intermediate_legacy(const rct::key &legacy_base_spend_pubkey,
                         contextual_basic_record.unwrap<LegacyContextualBasicEnoteRecordV1>().origin_context.unwrap<LegacyEnoteOriginContextV2>(),
                         found_enote_records_out);
                 else
-                    CHECK_AND_ASSERT_THROW_MES(false, "LegacyEnoteOriginContext not implemented");
+                    CHECK_AND_ASSERT_THROW_MES(false, "LegacyEnoteOriginContext version not implemented");
             } catch (...) {}
         }
     }
@@ -805,7 +810,7 @@ void process_chunk_full_legacy(const rct::key &legacy_base_spend_pubkey,
                         found_enote_records_out,
                         found_spent_key_images_out);
                 else
-                    CHECK_AND_ASSERT_THROW_MES(false, "LegacyEnoteOriginContext not implemented");
+                    CHECK_AND_ASSERT_THROW_MES(false, "LegacyEnoteOriginContext version not implemented");
             } catch (...) {}
         }
     }

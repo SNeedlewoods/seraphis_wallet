@@ -225,7 +225,6 @@ TEST(seraphis_integration, txtype_squashed_v1)
     refresh_user_enote_store(user_keys_A, refresh_config, ledger_context, enote_store_A);
     ASSERT_TRUE(get_balance(enote_store_A, {SpEnoteOriginStatus::ONCHAIN},
         {SpEnoteSpentStatus::SPENT_ONCHAIN}) >= 4000000);
-    // TODO : fails in validate_tx()->validate_txs_impl()->validate_tx_key_image()->validate_sp_key_images_v1()
     transfer_funds_single_mock_v1(legacy_user_keys_A,
         user_keys_A,
         input_selector_A,
