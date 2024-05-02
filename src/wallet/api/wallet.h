@@ -32,6 +32,7 @@
 #define WALLET_IMPL_H
 
 #include "wallet/api/wallet2_api.h"
+#include "wallet/api/wallet_settings.h"
 #include "wallet/wallet2.h"
 
 #include <string>
@@ -126,14 +127,14 @@ public:
     void setAutoRefreshInterval(int millis) override;
     int autoRefreshInterval() const override;
     void setRefreshFromBlockHeight(uint64_t refresh_from_block_height) override;
-    uint64_t getRefreshFromBlockHeight() const override { return m_wallet->get_refresh_from_block_height(); };
+    uint64_t getRefreshFromBlockHeight() const override { return m_wallet_settings->m_refresh_from_block_height; };
     void setRecoveringFromSeed(bool recoveringFromSeed) override;
     void setRecoveringFromDevice(bool recoveringFromDevice) override;
     void setSubaddressLookahead(uint32_t major, uint32_t minor) override;
     bool watchOnly() const override;
     bool isDeterministic() const override;
     bool rescanSpent() override;
-    NetworkType nettype() const override {return static_cast<NetworkType>(m_wallet->nettype());}
+    NetworkType nettype() const override {return m_wallet_settings->m_nettype;}
     void hardForkInfo(uint8_t &version, uint64_t &earliest_height) const override;
     bool useForkRules(uint8_t version, int64_t early_blocks) const override;
 
@@ -249,12 +250,15 @@ private:
     friend class SubaddressAccountImpl;
     friend class ::WalletApiAccessorTest;
 
+    // TODO : get rid of m_wallet here
     std::unique_ptr<tools::wallet2> m_wallet;
+    std::unique_ptr<WalletSettings> m_wallet_settings;
     mutable boost::mutex m_statusMutex;
     mutable int m_status;
     mutable std::string m_errorString;
     std::string m_password;
     std::unique_ptr<TransactionHistoryImpl> m_history;
+    // TODO : this also relies on wallet.h
     std::unique_ptr<Wallet2CallbackImpl> m_wallet2Callback;
     std::unique_ptr<AddressBookImpl>  m_addressBook;
     std::unique_ptr<SubaddressImpl>  m_subaddress;

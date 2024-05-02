@@ -407,6 +407,7 @@ WalletImpl::WalletImpl(NetworkType nettype, uint64_t kdf_rounds)
     m_addressBook.reset(new AddressBookImpl(this));
     m_subaddress.reset(new SubaddressImpl(this));
     m_subaddressAccount.reset(new SubaddressAccountImpl(this));
+    m_wallet_settings.reset(new WalletSettings(nettype));
 
 
     m_refreshIntervalMillis = DEFAULT_REFRESH_INTERVAL_MILLIS;
@@ -457,8 +458,15 @@ bool WalletImpl::create(const std::string &path, const std::string &password, co
         setStatusCritical(error);
         return false;
     }
-    // TODO: validate language
-    m_wallet->set_seed_language(language);
+    std::vector<std::string> supported_languages;
+    crypto::ElectrumWords::get_language_list(supported_languages);
+    if (std::find(supported_languages.begin(), supported_languages.end(), language) == supported_languages.end()) {
+        std::string error = "attempting to generate or restore wallet, but specified seed-language does not exist.  Exiting.";
+        LOG_ERROR(error);
+        setStatusCritical(error);
+        return false;
+    }
+    m_wallet_settings.m_seed_language = language;
     crypto::secret_key recovery_val, secret_key;
     try {
         recovery_val = m_wallet->generate(path, password, secret_key, false, false);
