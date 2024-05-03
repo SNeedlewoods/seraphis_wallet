@@ -279,7 +279,7 @@ bool try_append_legacy_enote_ephemeral_pubkeys_to_tx_extra(const std::vector<rct
 *                                                           [otherwise r_0 K^v_0, ..., r_n K^v_n]
 */
 void extract_legacy_enote_ephemeral_pubkeys_from_tx_extra(const TxExtra &tx_extra,
-    std::vector<crypto::public_key> &legacy_main_enote_ephemeral_pubkeys_out,
+    rct::key_keyV_variant &legacy_main_enote_ephemeral_pubkeys_out,
     std::vector<crypto::public_key> &legacy_additional_enote_ephemeral_pubkeys_out);
 
 } //namespace sp

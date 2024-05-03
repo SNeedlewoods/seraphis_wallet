@@ -373,7 +373,7 @@ bool try_append_legacy_enote_ephemeral_pubkeys_to_tx_extra(const std::vector<rct
 }
 //-------------------------------------------------------------------------------------------------------------------
 void extract_legacy_enote_ephemeral_pubkeys_from_tx_extra(const TxExtra &tx_extra,
-    std::vector<crypto::public_key> &legacy_main_enote_ephemeral_pubkeys_out,
+    rct::key_keyV_variant &legacy_main_enote_ephemeral_pubkeys_out,
     std::vector<crypto::public_key> &legacy_additional_enote_ephemeral_pubkeys_out)
 {
     // 1. parse field
@@ -386,11 +386,12 @@ void extract_legacy_enote_ephemeral_pubkeys_from_tx_extra(const TxExtra &tx_extr
     cryptonote::tx_extra_pub_key pub_key_field;
 
     size_t pk_index = 0;
+    legacy_main_enote_ephemeral_pubkeys_out = rct::keyV{};
     while (cryptonote::find_tx_extra_field_by_type(tx_extra_fields, pub_key_field, pk_index++))
-        legacy_main_enote_ephemeral_pubkeys_out.push_back(pub_key_field.pub_key);
+        legacy_main_enote_ephemeral_pubkeys_out.unwrap<rct::keyV>().push_back(rct::pk2rct(pub_key_field.pub_key));
 
-    if (legacy_main_enote_ephemeral_pubkeys_out.empty())
-        legacy_main_enote_ephemeral_pubkeys_out.push_back(rct::rct2pk(rct::I));
+    if (legacy_main_enote_ephemeral_pubkeys_out.unwrap<rct::keyV>().empty())
+        legacy_main_enote_ephemeral_pubkeys_out = rct::I;
 
     // 3. try to get 'additional' enote ephemeral pubkeys (one per output): r_t K^v_t
     cryptonote::tx_extra_additional_pub_keys additional_pub_keys_field;

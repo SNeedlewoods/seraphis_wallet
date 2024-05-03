@@ -371,7 +371,7 @@ bool try_find_legacy_enotes_in_tx(const rct::key &legacy_base_spend_pubkey,
     basic_records_in_tx_out.clear();
 
     // 1. extract enote ephemeral pubkeys from the memo
-    std::vector<crypto::public_key> legacy_main_enote_ephemeral_pubkeys;
+    rct::key_keyV_variant legacy_main_enote_ephemeral_pubkeys = rct::key{};
     std::vector<crypto::public_key> legacy_additional_enote_ephemeral_pubkeys;
 
     extract_legacy_enote_ephemeral_pubkeys_from_tx_extra(tx_memo,
@@ -381,7 +381,6 @@ bool try_find_legacy_enotes_in_tx(const rct::key &legacy_base_spend_pubkey,
     // 2. scan each enote in the tx using the 'additional enote ephemeral pubkeys'
     // - this step is automatically skipped if legacy_additional_enote_ephemeral_pubkeys.size() == 0
     crypto::key_derivation temp_DH_derivation;
-    std::vector<crypto::key_derivation> temp_DH_derivations;
     LegacyContextualBasicEnoteRecordV1 temp_contextual_record{};
     bool found_an_enote{false};
 
@@ -422,21 +421,42 @@ bool try_find_legacy_enotes_in_tx(const rct::key &legacy_base_spend_pubkey,
     }
 
     // 3. check if there is a main enote ephemeral pubkey
-    if (legacy_main_enote_ephemeral_pubkeys.front() == rct::rct2pk(rct::I))
+    if (legacy_main_enote_ephemeral_pubkeys.is_type<rct::key>() &&
+            legacy_main_enote_ephemeral_pubkeys.unwrap<rct::key>() == rct::rct2pk(rct::I))
         return found_an_enote;
 
     // 4. compute the key derivations for all main enote ephemeral pubkeys
-    for (crypto::public_key enote_ephemeral_pubkey : legacy_main_enote_ephemeral_pubkeys) {
-        hwdev.generate_key_derivation(enote_ephemeral_pubkey, legacy_view_privkey, temp_DH_derivation);
-        temp_DH_derivations.emplace_back(temp_DH_derivation);
+    rct::key_keyV_variant temp_DH_derivations = rct::key{};
+    if (legacy_main_enote_ephemeral_pubkeys.is_type<rct::keyV>())
+    {
+        temp_DH_derivations = rct::keyV{};
+        temp_DH_derivations.unwrap<rct::keyV>().reserve(legacy_main_enote_ephemeral_pubkeys.unwrap<rct::keyV>().size());
+        for (rct::key enote_ephemeral_pubkey : legacy_main_enote_ephemeral_pubkeys.unwrap<rct::keyV>()) {
+            hwdev.generate_key_derivation(rct::rct2pk(enote_ephemeral_pubkey), legacy_view_privkey, temp_DH_derivation);
+            temp_DH_derivations.unwrap<rct::keyV>().emplace_back((rct::key &) temp_DH_derivation);
+        }
+    }
+    else
+    {
+        hwdev.generate_key_derivation(rct::rct2pk(legacy_main_enote_ephemeral_pubkeys.unwrap<rct::key>()), legacy_view_privkey, temp_DH_derivation);
+        temp_DH_derivations = (rct::key &) temp_DH_derivation;
     }
 
     // 5. scan all enotes using key derivations for every ephemeral pub key
     for (std::size_t enote_index{0}; enote_index < enotes_in_tx.size(); ++enote_index)
     {
         // all ephemeral pub key - DH_derivation pairs
-        for (std::size_t pk_index{0}; pk_index < temp_DH_derivations.size(); ++pk_index)
+        for (std::size_t pk_index{0};
+                (temp_DH_derivations.is_type<rct::keyV>() && pk_index < temp_DH_derivations.unwrap<rct::keyV>().size()) ||
+                (temp_DH_derivations.is_type<rct::key>() && pk_index < 1);
+                ++pk_index)
         {
+            crypto::public_key temp_legacy_main_enote_ephemeral_pubkey = legacy_main_enote_ephemeral_pubkeys.is_type<rct::key>() ?
+                        rct::rct2pk(legacy_main_enote_ephemeral_pubkeys.unwrap<rct::key>()) :
+                        rct::rct2pk(legacy_main_enote_ephemeral_pubkeys.unwrap<rct::keyV>()[pk_index]);
+            temp_DH_derivation = temp_DH_derivations.is_type<rct::key>() ?
+                        (crypto::key_derivation &) (temp_DH_derivations.unwrap<rct::key>()) :
+                        (crypto::key_derivation &) (temp_DH_derivations.unwrap<rct::keyV>()[pk_index]);
             // a. try to recover a contextual basic record from the enote
             if (!try_view_scan_legacy_enote_v1(legacy_base_spend_pubkey,
                     legacy_subaddress_map,
@@ -448,8 +468,8 @@ bool try_find_legacy_enotes_in_tx(const rct::key &legacy_base_spend_pubkey,
                     unlock_time,
                     tx_memo,
                     enotes_in_tx[enote_index],
-                    legacy_main_enote_ephemeral_pubkeys[pk_index],
-                    temp_DH_derivations[pk_index],
+                    temp_legacy_main_enote_ephemeral_pubkey,
+                    temp_DH_derivation,
                     origin_status,
                     hwdev,
                     temp_contextual_record))
