@@ -38,4 +38,3 @@ WalletSettings::WalletSettings(NetworkType nettype)
 
 
 } // namespace
-

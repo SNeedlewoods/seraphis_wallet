@@ -41,6 +41,7 @@
 
 #include "mnemonics/electrum-words.h"
 #include "mnemonics/english.h"
+#include <algorithm>
 #include <boost/format.hpp>
 #include <sstream>
 #include <unordered_map>
@@ -147,9 +148,9 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
     virtual void on_new_block(uint64_t height, const cryptonote::block& block)
     {
         // Don't flood the GUI with signals. On fast refresh - send signal every 1000th block
-        // get_refresh_from_block_height() returns the blockheight from when the wallet was 
+        // m_refresh_from_block_height contains the blockheight from when the wallet was
         // created or the restore height specified when wallet was recovered
-        if(height >= m_wallet->m_wallet->get_refresh_from_block_height() || height % 1000 == 0) {
+        if(height >= m_wallet->m_wallet_settings->m_refresh_from_block_height || height % 1000 == 0) {
             // LOG_PRINT_L3(__FUNCTION__ << ": new block. height: " << height);
             if (m_listener) {
                 m_listener->newBlock(height);
@@ -469,6 +470,7 @@ bool WalletImpl::create(const std::string &path, const std::string &password, co
     m_wallet_settings.m_seed_language = language;
     crypto::secret_key recovery_val, secret_key;
     try {
+        // TODO : wallet2.cpp:5320
         recovery_val = m_wallet->generate(path, password, secret_key, false, false);
         m_password = password;
         clearStatus();
@@ -487,7 +489,7 @@ bool WalletImpl::createWatchOnly(const std::string &path, const std::string &pas
     std::unique_ptr<tools::wallet2> view_wallet(new tools::wallet2(m_wallet->nettype()));
 
     // Store same refresh height as original wallet
-    view_wallet->set_refresh_from_block_height(m_wallet->get_refresh_from_block_height());
+    view_wallet->set_refresh_from_block_height(m_wallet_settings->m_refresh_from_block_height);
 
     bool keys_file_exists;
     bool wallet_file_exists;
@@ -2316,7 +2318,7 @@ bool WalletImpl::doInit(const string &daemon_address, const std::string &proxy_a
     }
 
     if (m_rebuildWalletCache)
-      LOG_PRINT_L2(__FUNCTION__ << ": Rebuilding wallet cache, fast refresh until block " << m_wallet->get_refresh_from_block_height());
+      LOG_PRINT_L2(__FUNCTION__ << ": Rebuilding wallet cache, fast refresh until block " << m_wallet_settings->m_refresh_from_block_height);
 
     if (Utils::isAddressLocal(daemon_address)) {
         this->setTrustedDaemon(true);
