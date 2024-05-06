@@ -28,6 +28,10 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
+#include <string>
+#include <cstdint>
+#include "wallet2_api.h"
+
 #pragma once
 
 namespace Monero
@@ -39,6 +43,7 @@ public:
     WalletSettings(NetworkType nettype);
 private:
     friend class WalletImpl;
+    friend struct Wallet2CallbackImpl;
 
     NetworkType m_nettype;
     std::uint64_t m_refresh_from_block_height;

@@ -467,7 +467,7 @@ bool WalletImpl::create(const std::string &path, const std::string &password, co
         setStatusCritical(error);
         return false;
     }
-    m_wallet_settings.m_seed_language = language;
+    m_wallet_settings->m_seed_language = language;
     crypto::secret_key recovery_val, secret_key;
     try {
         // TODO : wallet2.cpp:5320

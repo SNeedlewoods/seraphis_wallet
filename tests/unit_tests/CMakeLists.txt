@@ -126,6 +126,7 @@ target_link_libraries(unit_tests
     serialization
     seraphis_crypto
     wallet
+    wallet_api
     p2p
     version
     ${Boost_CHRONO_LIBRARY}
