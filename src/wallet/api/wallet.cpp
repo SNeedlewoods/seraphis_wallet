@@ -459,10 +459,11 @@ bool WalletImpl::create(const std::string &path, const std::string &password, co
         setStatusCritical(error);
         return false;
     }
+    // TODO : this probably deserves its own function
     std::vector<std::string> supported_languages;
     crypto::ElectrumWords::get_language_list(supported_languages);
     if (std::find(supported_languages.begin(), supported_languages.end(), language) == supported_languages.end()) {
-        std::string error = "attempting to generate or restore wallet, but specified seed-language does not exist.  Exiting.";
+        std::string error = "attempting to generate or restore wallet, but specified seed-language `" + language + "` does not exist.  Exiting.";
         LOG_ERROR(error);
         setStatusCritical(error);
         return false;
@@ -471,7 +472,8 @@ bool WalletImpl::create(const std::string &path, const std::string &password, co
     crypto::secret_key recovery_val, secret_key;
     try {
         // TODO : wallet2.cpp:5320
-        recovery_val = m_wallet->generate(path, password, secret_key, false, false);
+//        recovery_val = m_wallet->generate(path, password, secret_key, false, false);
+        recovery_val = this->generate(path, password, secret_key, false, false);
         m_password = password;
         clearStatus();
     } catch (const std::exception &e) {
@@ -2597,6 +2599,43 @@ uint64_t WalletImpl::getBytesReceived()
 uint64_t WalletImpl::getBytesSent()
 {
     return m_wallet->get_bytes_sent();
+}
+
+crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::wipeable_string& password,
+  const crypto::secret_key& recovery_param, bool recover, bool two_random, bool create_address_file)
+{
+    // Clear
+//    m_wallet_settings.clear();
+
+    m_wallet_settings->prepare_file_names(wallet_);
+
+    if (!wallet_.empty())
+    {
+        boost::system::error_code ignored_ec;
+//        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_wallet_file, ignored_ec), error::file_exists, m_wallet_settings->m_wallet_file);
+//        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_keys_file,   ignored_ec), error::file_exists, m_wallet_settings->m_keys_file);
+    }
+
+
+    crypto::secret_key retval{};
+//    crypto::secret_key retval = m_account.generate(recovery_param, recover, two_random);
+
+//    init_type(hw::device::device_type::SOFTWARE);
+//    setup_keys(password);
+
+    // calculate a starting refresh height
+    if(m_wallet_settings->m_refresh_from_block_height == 0 && !recover){
+//        m_refresh_from_block_height = estimate_blockchain_height();
+    }
+
+//    create_keys_file(wallet_, false, password, m_nettype != MAINNET || create_address_file);
+
+//    setup_new_blockchain();
+
+//    if (!wallet_.empty())
+//        store();
+
+    return retval;
 }
 
 } // namespace

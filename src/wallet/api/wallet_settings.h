@@ -41,6 +41,8 @@ class WalletSettings
 {
 public:
     WalletSettings(NetworkType nettype);
+    void prepare_file_names(const std::string &file_path);
+
 private:
     friend class WalletImpl;
     friend struct Wallet2CallbackImpl;
@@ -48,6 +50,9 @@ private:
     NetworkType m_nettype;
     std::uint64_t m_refresh_from_block_height;
     std::string m_seed_language;
+    std::string m_wallet_file;
+    std::string m_keys_file;
+    std::string m_mms_file;
 };
 
 

@@ -36,11 +36,12 @@ using namespace Monero;
 //-------------------------------------------------------------------------------------------------------------------
 TEST(wallet_api, create_wallet)
 {
-    std::string wallet_path = "wallet_api/test_create_wallet";
+    // set wallet creation parameters
+    std::string wallet_path = "test_create_wallet";
     std::string wallet_password = "wallet password";
-    std::string seed_language = "EnglishOld";
+    std::string seed_language = "English";
 
-    // Mainnet wallet
+    // Create Mainnet wallet
     WalletImpl *wallet = new WalletImpl();
     ASSERT_TRUE(wallet->create(wallet_path, wallet_password, seed_language));
 }

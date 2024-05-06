@@ -227,6 +227,18 @@ public:
     virtual uint64_t getBytesReceived() override;
     virtual uint64_t getBytesSent() override;
 
+    /*!
+     * \brief  Generates a wallet or restores one.
+     * \param  wallet_                 Name of wallet file
+     * \param  password                Password of wallet file
+     * \param  recovery_param          If it is a restore, the recovery key
+     * \param  recover                 Whether it is a restore
+     * \param  two_random              Whether it is a non-deterministic wallet
+     * \param  create_address_file     Whether to create an address file
+     * \return                         The secret key of the generated wallet
+     */
+    crypto::secret_key generate(const std::string& wallet_, const epee::wipeable_string& password, const crypto::secret_key& recovery_param, bool recover, bool two_random, bool create_address_file = false);
+
 private:
     void clearStatus() const;
     void setStatusError(const std::string& message) const;

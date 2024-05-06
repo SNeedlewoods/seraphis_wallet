@@ -28,6 +28,7 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
+#include "string_tools.h"
 #include "wallet_settings.h"
 
 namespace Monero
@@ -36,6 +37,20 @@ namespace Monero
 WalletSettings::WalletSettings(NetworkType nettype)
     : m_nettype(nettype)
 {
+}
+
+void WalletSettings::prepare_file_names(const std::string& file_path)
+{
+    m_keys_file = file_path;
+    m_wallet_file = file_path;
+    if (epee::string_tools::get_extension(m_keys_file) == "keys")
+    { //provided keys file name
+        m_wallet_file = epee::string_tools::cut_off_extension(m_wallet_file);
+    } else
+    { //provided wallet file name
+        m_keys_file += ".keys";
+    }
+    m_mms_file = file_path + ".mms";
 }
 
 
