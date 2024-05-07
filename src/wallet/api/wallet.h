@@ -265,6 +265,7 @@ private:
     // TODO : get rid of m_wallet here
     std::unique_ptr<tools::wallet2> m_wallet;
     std::unique_ptr<WalletSettings> m_wallet_settings;
+    cryptonote::account_base m_account;
     mutable boost::mutex m_statusMutex;
     mutable int m_status;
     mutable std::string m_errorString;

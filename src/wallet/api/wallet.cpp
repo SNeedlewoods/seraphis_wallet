@@ -30,6 +30,7 @@
 
 
 #include "wallet.h"
+#include <wallet/wallet_errors.h>
 #include "pending_transaction.h"
 #include "unsigned_transaction.h"
 #include "transaction_history.h"
@@ -2612,13 +2613,11 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
     if (!wallet_.empty())
     {
         boost::system::error_code ignored_ec;
-//        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_wallet_file, ignored_ec), error::file_exists, m_wallet_settings->m_wallet_file);
-//        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_keys_file,   ignored_ec), error::file_exists, m_wallet_settings->m_keys_file);
+        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_wallet_file, ignored_ec), tools::error::file_exists, m_wallet_settings->m_wallet_file);
+        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_keys_file,   ignored_ec), tools::error::file_exists, m_wallet_settings->m_keys_file);
     }
 
-
-    crypto::secret_key retval{};
-//    crypto::secret_key retval = m_account.generate(recovery_param, recover, two_random);
+    crypto::secret_key retval = m_account.generate(recovery_param, recover, two_random);
 
 //    init_type(hw::device::device_type::SOFTWARE);
 //    setup_keys(password);
