@@ -151,7 +151,7 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
         // Don't flood the GUI with signals. On fast refresh - send signal every 1000th block
         // m_refresh_from_block_height contains the blockheight from when the wallet was
         // created or the restore height specified when wallet was recovered
-        if(height >= m_wallet->m_wallet_settings->m_refresh_from_block_height || height % 1000 == 0) {
+        if(height >= m_wallet->getRefreshFromBlockHeight() || height % 1000 == 0) {
             // LOG_PRINT_L3(__FUNCTION__ << ": new block. height: " << height);
             if (m_listener) {
                 m_listener->newBlock(height);
@@ -409,7 +409,7 @@ WalletImpl::WalletImpl(NetworkType nettype, uint64_t kdf_rounds)
     m_addressBook.reset(new AddressBookImpl(this));
     m_subaddress.reset(new SubaddressImpl(this));
     m_subaddressAccount.reset(new SubaddressAccountImpl(this));
-    m_wallet_settings.reset(new WalletSettings(nettype));
+    m_wallet_settings.reset(new WalletSettings(nettype, kdf_rounds));
 
 
     m_refreshIntervalMillis = DEFAULT_REFRESH_INTERVAL_MILLIS;
@@ -905,13 +905,145 @@ void WalletImpl::stop()
 
 bool WalletImpl::store(const std::string &path)
 {
+    epee::wipeable_string password = path.empty() ? epee::wipeable_string() : m_password;
     clearStatus();
     try {
-        if (path.empty()) {
-            m_wallet->store();
-        } else {
-            m_wallet->store_to(path, m_password);
+//        trim_hashchain();
+
+        const bool had_old_wallet_files = !m_wallet_settings->m_wallet_file.empty();
+        THROW_WALLET_EXCEPTION_IF(!had_old_wallet_files && path.empty(), tools::error::wallet_internal_error,
+                "Cannot resave wallet to current file since wallet was not loaded from file to begin with");
+
+        // if file is the same, we do:
+        // 1. overwrite the keys file iff force_rewrite_keys is specified
+        // 2. save cache to the *.new file
+        // 3. rename *.new to wallet_name, replacing old cache file
+        // else we do:
+        // 1. prepare new file names with "path" variable
+        // 2. store new keys files
+        // 3. remove old keys file
+        // 4. store new cache file
+        // 5. remove old cache file
+
+        // handle if we want just store wallet state to current files (ex store() replacement);
+        bool same_file = had_old_wallet_files && path.empty();
+        if (had_old_wallet_files && !path.empty())
+        {
+            const std::string canonical_old_path = boost::filesystem::canonical(m_wallet_settings->m_wallet_file).string();
+            const std::string canonical_new_path = boost::filesystem::weakly_canonical(path).string();
+            same_file = canonical_old_path == canonical_new_path;
         }
+
+
+        if (!same_file)
+        {
+            // check if we want to store to directory which doesn't exists yet
+            boost::filesystem::path parent_path = boost::filesystem::path(path).parent_path();
+
+            // if path is not exists, try to create it
+            if (!parent_path.empty() &&  !boost::filesystem::exists(parent_path))
+            {
+                boost::system::error_code ec;
+                if (!boost::filesystem::create_directories(parent_path, ec))
+                {
+                    throw std::logic_error(ec.message());
+                }
+            }
+        }
+
+        // get wallet cache data
+//        boost::optional<wallet2::cache_file_data> cache_file_data = get_cache_file_data();
+//        THROW_WALLET_EXCEPTION_IF(cache_file_data == boost::none, error::wallet_internal_error, "failed to generate wallet cache data");
+//
+//        const std::string new_file = same_file ? m_wallet_file + ".new" : path;
+//        const std::string old_file = m_wallet_file;
+//        const std::string old_keys_file = m_keys_file;
+//        const std::string old_address_file = m_wallet_file + ".address.txt";
+//        const std::string old_mms_file = m_mms_file;
+//
+//        if (!same_file)
+//        {
+//            prepare_file_names(path);
+//        }
+//
+//        if (!same_file || force_rewrite_keys)
+//        {
+//            bool r = store_keys(m_keys_file, password, m_watch_only);
+//            THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_keys_file);
+//        }
+//
+//        if (!same_file && had_old_wallet_files)
+//        {
+//            bool r = false;
+//            if (boost::filesystem::exists(old_address_file))
+//            {
+//                // save address to the new file
+//                const std::string address_file = m_wallet_file + ".address.txt";
+//                r = save_to_file(address_file, m_account.get_public_address_str(m_nettype), true);
+//                THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_wallet_file);
+//                // remove old address file
+//                r = boost::filesystem::remove(old_address_file);
+//                if (!r) {
+//                    LOG_ERROR("error removing file: " << old_address_file);
+//                }
+//            }
+//            // remove old keys file
+//            r = boost::filesystem::remove(old_keys_file);
+//            if (!r) {
+//                LOG_ERROR("error removing file: " << old_keys_file);
+//            }
+//            // remove old message store file
+//            if (boost::filesystem::exists(old_mms_file))
+//            {
+//                r = boost::filesystem::remove(old_mms_file);
+//                if (!r) {
+//                    LOG_ERROR("error removing file: " << old_mms_file);
+//                }
+//            }
+//        }
+//
+//        // Save cache to new file. If storing to the same file, the temp path has the ".new" extension
+//#ifdef WIN32
+//        // On Windows avoid using std::ofstream which does not work with UTF-8 filenames
+//        // The price to pay is temporary higher memory consumption for string stream + binary archive
+//        std::ostringstream oss;
+//        binary_archive<true> oar(oss);
+//        bool success = ::serialization::serialize(oar, cache_file_data.get());
+//        if (success) {
+//            success = save_to_file(new_file, oss.str());
+//        }
+//        THROW_WALLET_EXCEPTION_IF(!success, error::file_save_error, new_file);
+//#else
+//        std::ofstream ostr;
+//        ostr.open(new_file, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+//        binary_archive<true> oar(ostr);
+//        bool success = ::serialization::serialize(oar, cache_file_data.get());
+//        ostr.close();
+//        THROW_WALLET_EXCEPTION_IF(!success || !ostr.good(), error::file_save_error, new_file);
+//#endif
+//
+//        if (same_file)
+//        {
+//            // here we have "*.new" file, we need to rename it to be without ".new"
+//            std::error_code e = tools::replace_file(new_file, m_wallet_file);
+//            THROW_WALLET_EXCEPTION_IF(e, error::file_save_error, m_wallet_file, e);
+//        }
+//        else if (!same_file && had_old_wallet_files)
+//        {
+//            // remove old wallet file
+//            bool r = boost::filesystem::remove(old_file);
+//            if (!r) {
+//                LOG_ERROR("error removing file: " << old_file);
+//            }
+//        }
+//
+//        if (m_message_store.get_active())
+//        {
+//            // While the "m_message_store" object of course always exist, a file for the message
+//            // store should only exist if the MMS is really active
+//            m_message_store.write_to_file(get_multisig_wallet_state(), m_mms_file);
+//        }
+
     } catch (const std::exception &e) {
         LOG_ERROR("Error saving wallet: " << e.what());
         setStatusError(e.what());
@@ -937,11 +1069,6 @@ bool WalletImpl::init(const std::string &daemon_address, uint64_t upper_transact
     if(daemon_username != "")
         m_daemon_login.emplace(daemon_username, daemon_password);
     return doInit(daemon_address, proxy_address, upper_transaction_size_limit, use_ssl);
-}
-
-void WalletImpl::setRefreshFromBlockHeight(uint64_t refresh_from_block_height)
-{
-    m_wallet->set_refresh_from_block_height(refresh_from_block_height);
 }
 
 void WalletImpl::setRecoveringFromSeed(bool recoveringFromSeed)
@@ -2321,7 +2448,7 @@ bool WalletImpl::doInit(const string &daemon_address, const std::string &proxy_a
     }
 
     if (m_rebuildWalletCache)
-      LOG_PRINT_L2(__FUNCTION__ << ": Rebuilding wallet cache, fast refresh until block " << m_wallet_settings->m_refresh_from_block_height);
+      LOG_PRINT_L2(__FUNCTION__ << ": Rebuilding wallet cache, fast refresh until block " << getRefreshFromBlockHeight());
 
     if (Utils::isAddressLocal(daemon_address)) {
         this->setTrustedDaemon(true);
@@ -2613,26 +2740,62 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
     if (!wallet_.empty())
     {
         boost::system::error_code ignored_ec;
-        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_wallet_file, ignored_ec), tools::error::file_exists, m_wallet_settings->m_wallet_file);
-        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_keys_file,   ignored_ec), tools::error::file_exists, m_wallet_settings->m_keys_file);
+        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_wallet_file, ignored_ec),
+                                  tools::error::file_exists, m_wallet_settings->m_wallet_file);
+        THROW_WALLET_EXCEPTION_IF(boost::filesystem::exists(m_wallet_settings->m_keys_file,   ignored_ec),
+                                  tools::error::file_exists, m_wallet_settings->m_keys_file);
     }
 
     crypto::secret_key retval = m_account.generate(recovery_param, recover, two_random);
 
-//    init_type(hw::device::device_type::SOFTWARE);
-//    setup_keys(password);
+    m_account_public_address = m_account.get_keys().m_account_address;
+    m_wallet_settings->m_watch_only = false;
+    m_wallet_settings->m_key_device_type = hw::device::device_type::SOFTWARE;
+    // TODO : implement new setup_keys() function for API
+    crypto::chacha_key key;
+    crypto::generate_chacha_key(password.data(), password.size(), key, m_wallet_settings->m_kdf_rounds);
 
-    // calculate a starting refresh height
-    if(m_wallet_settings->m_refresh_from_block_height == 0 && !recover){
-//        m_refresh_from_block_height = estimate_blockchain_height();
+    // re-encrypt, but keep viewkey unencrypted
+    if (m_wallet_settings->m_ask_password == AskPasswordToDecrypt &&
+        !m_wallet_settings->m_unattended &&
+        !m_wallet_settings->m_watch_only)
+    {
+        m_account.encrypt_keys(key);
+        m_account.decrypt_viewkey(key);
     }
 
-//    create_keys_file(wallet_, false, password, m_nettype != MAINNET || create_address_file);
+//    m_cache_key = derive_cache_key(key);
 
-//    setup_new_blockchain();
+//    get_ringdb_key();
+    // END : implement new setup_keys() function for API
 
-//    if (!wallet_.empty())
-//        store();
+    // calculate a starting refresh height
+    if(getRefreshFromBlockHeight() == 0 && !recover){
+        setRefreshFromBlockHeight(estimateBlockChainHeight());
+    }
+
+    // TODO : implement new create_keys_file() function for API
+    if (!wallet_.empty())
+    {
+//        bool r = store_keys(m_wallet_settings->m_keys_file, password, false /* watch_only */);
+//        THROW_WALLET_EXCEPTION_IF(!r, tools::error::file_save_error, m_wallet_settings->m_keys_file);
+
+        if (create_address_file)
+        {
+//            r = save_to_file(m_wallet_settings->m_wallet_file + ".address.txt",
+//                             m_account.get_public_address_str(m_wallet_settings->m_nettype),
+//                             true /* is_printable */);
+//            if(!r) MERROR("String with address text not saved");
+        }
+    }
+    // END : implement new create_keys_file() function for API
+
+    // TODO : implement new setup_new_blockchain() function for API
+//    m_wallet->setup_new_blockchain();
+    // END : implement new create_keys_file() function for API
+
+    if (!wallet_.empty())
+        store();
 
     return retval;
 }

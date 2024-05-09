@@ -34,8 +34,14 @@
 namespace Monero
 {
 
-WalletSettings::WalletSettings(NetworkType nettype)
-    : m_nettype(nettype)
+WalletSettings::WalletSettings(NetworkType nettype, uint64_t kdf_rounds)
+    : m_nettype(nettype),
+    m_kdf_rounds(kdf_rounds),
+    m_refresh_from_block_height(0),
+    m_ask_password(AskPasswordToDecrypt),
+    m_watch_only(false),
+    m_unattended(false),
+    m_key_device_type(hw::device::device_type::SOFTWARE)
 {
 }
 
@@ -50,7 +56,7 @@ void WalletSettings::prepare_file_names(const std::string& file_path)
     { //provided wallet file name
         m_keys_file += ".keys";
     }
-    m_mms_file = file_path + ".mms";
+//    m_mms_file = file_path + ".mms";
 }
 
 

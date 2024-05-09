@@ -103,7 +103,7 @@ public:
     std::string publicMultisigSignerKey() const override;
     std::string path() const override;
     void stop() override;
-    bool store(const std::string &path) override;
+    bool store(const std::string &path = "") override;
     std::string filename() const override;
     std::string keysFilename() const override;
     bool init(const std::string &daemon_address, uint64_t upper_transaction_size_limit = 0, const std::string &daemon_username = "", const std::string &daemon_password = "", bool use_ssl = false, bool lightWallet = false, const std::string &proxy_address = "") override;
@@ -126,7 +126,7 @@ public:
     void rescanBlockchainAsync() override;    
     void setAutoRefreshInterval(int millis) override;
     int autoRefreshInterval() const override;
-    void setRefreshFromBlockHeight(uint64_t refresh_from_block_height) override;
+    void setRefreshFromBlockHeight(uint64_t refresh_from_block_height) override { m_wallet_settings->m_refresh_from_block_height = refresh_from_block_height; };
     uint64_t getRefreshFromBlockHeight() const override { return m_wallet_settings->m_refresh_from_block_height; };
     void setRecoveringFromSeed(bool recoveringFromSeed) override;
     void setRecoveringFromDevice(bool recoveringFromDevice) override;
@@ -265,7 +265,9 @@ private:
     // TODO : get rid of m_wallet here
     std::unique_ptr<tools::wallet2> m_wallet;
     std::unique_ptr<WalletSettings> m_wallet_settings;
+    // TODO : consider to move this to `WalletState`
     cryptonote::account_base m_account;
+    cryptonote::account_public_address m_account_public_address;
     mutable boost::mutex m_statusMutex;
     mutable int m_status;
     mutable std::string m_errorString;

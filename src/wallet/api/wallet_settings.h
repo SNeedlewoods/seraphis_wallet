@@ -30,6 +30,8 @@
 
 #include <string>
 #include <cstdint>
+
+#include "device/device.hpp"
 #include "wallet2_api.h"
 
 #pragma once
@@ -37,10 +39,17 @@
 namespace Monero
 {
 
+enum AskPasswordType
+{
+    AskPasswordNever = 0,
+    AskPasswordOnAction = 1,
+    AskPasswordToDecrypt = 2,
+};
+
 class WalletSettings
 {
 public:
-    WalletSettings(NetworkType nettype);
+    WalletSettings(NetworkType nettype, uint64_t kdf_rounds);
     void prepare_file_names(const std::string &file_path);
 
 private:
@@ -48,11 +57,16 @@ private:
     friend struct Wallet2CallbackImpl;
 
     NetworkType m_nettype;
+    std::uint64_t m_kdf_rounds;
     std::uint64_t m_refresh_from_block_height;
     std::string m_seed_language;
     std::string m_wallet_file;
     std::string m_keys_file;
-    std::string m_mms_file;
+//    std::string m_mms_file;
+    AskPasswordType m_ask_password;
+    bool m_watch_only;
+    bool m_unattended;
+    hw::device::device_type m_key_device_type;
 };
 
 
