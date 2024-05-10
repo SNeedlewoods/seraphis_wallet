@@ -28,21 +28,41 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
-#include "wallet2_api.h"
-#include "wallet_settings.h"
-#include "cryptonote_basic/account.h"
-#include "wipeable_string.h"
+// Handle keys for the wallet API
 
 #pragma once
+
+//local headers
+#include "cryptonote_basic/account.h"
+#include "wallet2_api.h"
+#include "wallet_settings.h"
+
+//third party headers
+#include "wipeable_string.h"
+
+//standard headers
+
+//forward declarations
+
 
 namespace Monero
 {
 
+////
+// WalletKeys
+// - housing for critical data like password and keys
+///
 class WalletKeys
 {
 public:
     WalletKeys();
 
+    /**
+    * brief: setup_keys - generates chacha key from password and sets m_cache_key
+    * param: password -
+    * param: wallet_settings -
+    * param: account -
+    */
     void setup_keys(const epee::wipeable_string &password, const std::unique_ptr<WalletSettings> &wallet_settings, cryptonote::account_base &account);
 
 private:

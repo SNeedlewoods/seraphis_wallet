@@ -28,10 +28,14 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
-
+// Utility tools for the wallet API
 
 #include "include_base_utils.h"                     // LOG_PRINT_x
 #include "common/util.h"
+#include "crypto/chacha.h"
+#include "crypto/hash.h"
+
+#include "mlocker.h"
 
 using namespace std;
 
@@ -56,7 +60,24 @@ void onStartup()
 #endif
 }
 
+// TODO : consider using another namespace KeyUtils if more key related stuff ends up here
+/**
+* brief: derive_cache_key - Derives the chacha key to encrypt wallet cache files given the chacha key to encrypt the wallet keys files
+* param: keys_data_key -
+* return: crypto::chacha_key the chacha key that encrypts the wallet cache files
+*/
+crypto::chacha_key derive_cache_key(const crypto::chacha_key &keys_data_key)
+{
+    static_assert(crypto::HASH_SIZE == sizeof(crypto::chacha_key), "Mismatched sizes of hash and chacha key");
+
+    crypto::chacha_key cache_key{};
+    epee::mlocked<tools::scrubbed_arr<char, crypto::HASH_SIZE+1>> cache_key_data;
+    memcpy(cache_key_data.data(), &keys_data_key, crypto::HASH_SIZE);
+    cache_key_data[crypto::HASH_SIZE] = config::HASH_KEY_WALLET_CACHE;
+    cn_fast_hash(cache_key_data.data(), crypto::HASH_SIZE+1, (crypto::hash&) cache_key);
+
+    return cache_key;
 }
 
-
-} // namespace
+} // namespace Utils
+} // namespace Monero

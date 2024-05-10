@@ -28,12 +28,21 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
-#include "string_tools.h"
+//paired header
 #include "wallet_settings.h"
+
+//local headers
+
+//third party headers
+#include "string_tools.h"
+
+//standard headers
+
 
 namespace Monero
 {
 
+//-------------------------------------------------------------------------------------------------------------------
 WalletSettings::WalletSettings(NetworkType nettype, uint64_t kdf_rounds)
     : m_nettype(nettype),
     m_kdf_rounds(kdf_rounds),
@@ -44,7 +53,7 @@ WalletSettings::WalletSettings(NetworkType nettype, uint64_t kdf_rounds)
     m_key_device_type(hw::device::device_type::SOFTWARE)
 {
 }
-
+//-------------------------------------------------------------------------------------------------------------------
 void WalletSettings::prepare_file_names(const std::string& file_path)
 {
     m_keys_file = file_path;

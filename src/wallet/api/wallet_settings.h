@@ -28,13 +28,21 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
-#include <string>
-#include <cstdint>
+// Handle settings for the wallet API
 
+#pragma once
+
+//local headers
 #include "device/device.hpp"
 #include "wallet2_api.h"
 
-#pragma once
+//third party headers
+#include "string_tools.h"
+
+//standard headers
+#include <cstdint>
+#include <string>
+
 
 namespace Monero
 {

@@ -28,7 +28,15 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
+//paired header
 #include "wallet_keys.h"
+
+//local headers
+
+//third party headers
+
+//standard headers
+
 
 namespace Monero
 {
@@ -36,22 +44,29 @@ namespace Monero
 WalletKeys::WalletKeys()
 {
 }
-
-void WalletKeys::setup_keys(const epee::wipeable_string &password, const std::unique_ptr<WalletSettings> &wallet_settings, cryptonote::account_base &account)
+//-------------------------------------------------------------------------------------------------------------------
+void WalletKeys::setup_keys(const epee::wipeable_string &password,
+                            const std::unique_ptr<WalletSettings> &wallet_settings,
+                            cryptonote::account_base &account)
 {
-  crypto::chacha_key key;
-  crypto::generate_chacha_key(password.data(), password.size(), key, wallet_settings->m_kdf_rounds);
+    crypto::chacha_key key;
+    crypto::generate_chacha_key(password.data(), password.size(), key, wallet_settings->m_kdf_rounds);
 
-  // re-encrypt, but keep viewkey unencrypted
-  if (wallet_settings->m_ask_password == AskPasswordToDecrypt && !wallet_settings->m_unattended && !wallet_settings->m_watch_only)
-  {
-    account.encrypt_keys(key);
-    account.decrypt_viewkey(key);
-  }
+    // re-encrypt, but keep viewkey unencrypted
+    if (wallet_settings->m_ask_password == AskPasswordToDecrypt &&
+       !wallet_settings->m_unattended &&
+       !wallet_settings->m_watch_only)
+    {
+        account.encrypt_keys(key);
+        account.decrypt_viewkey(key);
+    }
 
-//  m_cache_key = derive_cache_key(key);
-//
-//  get_ringdb_key();
+    // TODO NOW : this causes segfault
+//    m_cache_key = Utils::derive_cache_key(key);
+    // this does not
+    Utils::derive_cache_key(key);
+
+    //  get_ringdb_key();
 }
 
 

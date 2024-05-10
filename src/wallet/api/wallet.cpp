@@ -2749,7 +2749,6 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
     m_account_public_address = m_account.get_keys().m_account_address;
     m_wallet_settings->m_watch_only = false;
     m_wallet_settings->m_key_device_type = hw::device::device_type::SOFTWARE;
-    // TODO : implement new setup_keys() function for API
     m_wallet_keys->setup_keys(password, m_wallet_settings, m_account);
 
     // calculate a starting refresh height

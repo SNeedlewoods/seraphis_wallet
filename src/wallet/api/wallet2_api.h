@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include "crypto/chacha.h"
 
 #include <string>
 #include <vector>
@@ -52,6 +53,7 @@ enum NetworkType : uint8_t {
     namespace Utils {
         bool isAddressLocal(const std::string &hostaddr);
         void onStartup();
+        crypto::chacha_key derive_cache_key(const crypto::chacha_key &keys_data_key);
     }
 
     template<typename T>
