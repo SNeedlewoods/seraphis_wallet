@@ -28,46 +28,27 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
-#include <string>
-#include <cstdint>
-
-#include "device/device.hpp"
 #include "wallet2_api.h"
+#include "wallet_settings.h"
+#include "cryptonote_basic/account.h"
+#include "wipeable_string.h"
 
 #pragma once
 
 namespace Monero
 {
 
-enum AskPasswordType
-{
-    AskPasswordNever = 0,
-    AskPasswordOnAction = 1,
-    AskPasswordToDecrypt = 2,
-};
-
-class WalletSettings
+class WalletKeys
 {
 public:
-    WalletSettings(NetworkType nettype, uint64_t kdf_rounds);
-    void prepare_file_names(const std::string &file_path);
+    WalletKeys();
+
+    void setup_keys(const epee::wipeable_string &password, const std::unique_ptr<WalletSettings> &wallet_settings, cryptonote::account_base &account);
 
 private:
     friend class WalletImpl;
-    friend struct Wallet2CallbackImpl;
-    friend class WalletKeys;
 
-    NetworkType m_nettype;
-    std::uint64_t m_kdf_rounds;
-    std::uint64_t m_refresh_from_block_height;
-    std::string m_seed_language;
-    std::string m_wallet_file;
-    std::string m_keys_file;
-//    std::string m_mms_file;
-    AskPasswordType m_ask_password;
-    bool m_watch_only;
-    bool m_unattended;
-    hw::device::device_type m_key_device_type;
+    crypto::chacha_key m_cache_key;
 };
 
 

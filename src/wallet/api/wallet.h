@@ -33,6 +33,7 @@
 
 #include "wallet/api/wallet2_api.h"
 #include "wallet/api/wallet_settings.h"
+#include "wallet/api/wallet_keys.h"
 #include "wallet/wallet2.h"
 
 #include <string>
@@ -265,6 +266,7 @@ private:
     // TODO : get rid of m_wallet here
     std::unique_ptr<tools::wallet2> m_wallet;
     std::unique_ptr<WalletSettings> m_wallet_settings;
+    std::unique_ptr<WalletKeys> m_wallet_keys;
     // TODO : consider to move this to `WalletState`
     cryptonote::account_base m_account;
     cryptonote::account_public_address m_account_public_address;

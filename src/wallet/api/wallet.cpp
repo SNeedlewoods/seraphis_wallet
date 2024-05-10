@@ -30,7 +30,7 @@
 
 
 #include "wallet.h"
-#include <wallet/wallet_errors.h>
+#include "wallet/wallet_errors.h"
 #include "pending_transaction.h"
 #include "unsigned_transaction.h"
 #include "transaction_history.h"
@@ -472,9 +472,7 @@ bool WalletImpl::create(const std::string &path, const std::string &password, co
     m_wallet_settings->m_seed_language = language;
     crypto::secret_key recovery_val, secret_key;
     try {
-        // TODO : wallet2.cpp:5320
-//        recovery_val = m_wallet->generate(path, password, secret_key, false, false);
-        recovery_val = this->generate(path, password, secret_key, false, false);
+        recovery_val = this->generate(path, password, secret_key, false /* recover */, false /* two_random */);
         m_password = password;
         clearStatus();
     } catch (const std::exception &e) {
@@ -2752,22 +2750,7 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
     m_wallet_settings->m_watch_only = false;
     m_wallet_settings->m_key_device_type = hw::device::device_type::SOFTWARE;
     // TODO : implement new setup_keys() function for API
-    crypto::chacha_key key;
-    crypto::generate_chacha_key(password.data(), password.size(), key, m_wallet_settings->m_kdf_rounds);
-
-    // re-encrypt, but keep viewkey unencrypted
-    if (m_wallet_settings->m_ask_password == AskPasswordToDecrypt &&
-        !m_wallet_settings->m_unattended &&
-        !m_wallet_settings->m_watch_only)
-    {
-        m_account.encrypt_keys(key);
-        m_account.decrypt_viewkey(key);
-    }
-
-//    m_cache_key = derive_cache_key(key);
-
-//    get_ringdb_key();
-    // END : implement new setup_keys() function for API
+    m_wallet_keys->setup_keys(password, m_wallet_settings, m_account);
 
     // calculate a starting refresh height
     if(getRefreshFromBlockHeight() == 0 && !recover){
