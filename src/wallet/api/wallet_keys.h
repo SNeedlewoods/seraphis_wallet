@@ -40,6 +40,7 @@
 
 //third party headers
 #include "wipeable_string.h"
+#include <boost/optional/optional.hpp>
 
 //standard headers
 
@@ -59,6 +60,13 @@ public:
     WalletKeys();
 
     /**
+    * brief: get_ringdb_key - generates/returns chacha key for ringdb
+    * param: account -
+    * param: kdf_rounds -
+    * return: m_ringdb_key
+    */
+    crypto::chacha_key get_ringdb_key(cryptonote::account_base &account, const std::uint64_t &kdf_rounds);
+    /**
     * brief: setup_keys - generates chacha key from password and sets m_cache_key
     * param: password -
     * param: wallet_settings -
@@ -70,6 +78,7 @@ private:
     friend class WalletImpl;
 
     crypto::chacha_key m_cache_key;
+    boost::optional<crypto::chacha_key> m_ringdb_key;
 };
 
 

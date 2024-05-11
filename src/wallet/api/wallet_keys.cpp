@@ -32,6 +32,7 @@
 #include "wallet_keys.h"
 
 //local headers
+#include "device/device.hpp"
 
 //third party headers
 
@@ -40,9 +41,31 @@
 
 namespace Monero
 {
-
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+static bool generate_chacha_key_from_secret_keys(crypto::chacha_key &key,
+                                                 cryptonote::account_base &account,
+                                                 const std::uint64_t &kdf_rounds) const
+{
+  hw::device &hwdev = account.get_device();
+  return hwdev.generate_chacha_key(account.get_keys(), key, kdf_rounds);
+}
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
 WalletKeys::WalletKeys()
 {
+}
+//-------------------------------------------------------------------------------------------------------------------
+crypto::chacha_key WalletKeys::get_ringdb_key(cryptonote::account_base &account, const std::uint64_t &kdf_rounds)
+{
+  if (!m_ringdb_key)
+  {
+    MINFO("caching ringdb key");
+    crypto::chacha_key key;
+    generate_chacha_key_from_secret_keys(key, account, kdf_rounds);
+    m_ringdb_key = key;
+  }
+  return *m_ringdb_key;
 }
 //-------------------------------------------------------------------------------------------------------------------
 void WalletKeys::setup_keys(const epee::wipeable_string &password,
@@ -63,20 +86,9 @@ void WalletKeys::setup_keys(const epee::wipeable_string &password,
 
     m_cache_key = Utils::derive_cache_key(key);
 
-    //  get_ringdb_key();
+    get_ringdb_key(account, wallet_settings->m_kdf_rounds);
 }
 //-------------------------------------------------------------------------------------------------------------------
-//crypto::chacha_key wallet2::get_ringdb_key()
-//{
-//  if (!m_ringdb_key)
-//  {
-//    MINFO("caching ringdb key");
-//    crypto::chacha_key key;
-//    generate_chacha_key_from_secret_keys(key);
-//    m_ringdb_key = key;
-//  }
-//  return *m_ringdb_key;
-//}
 
 
 } // namespace
