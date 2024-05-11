@@ -49,7 +49,7 @@ void WalletKeys::setup_keys(const epee::wipeable_string &password,
                             const std::unique_ptr<WalletSettings> &wallet_settings,
                             cryptonote::account_base &account)
 {
-    crypto::chacha_key key;
+    crypto::chacha_key key{};
     crypto::generate_chacha_key(password.data(), password.size(), key, wallet_settings->m_kdf_rounds);
 
     // re-encrypt, but keep viewkey unencrypted
@@ -61,13 +61,22 @@ void WalletKeys::setup_keys(const epee::wipeable_string &password,
         account.decrypt_viewkey(key);
     }
 
-    // TODO NOW : this causes segfault
-//    m_cache_key = Utils::derive_cache_key(key);
-    // this does not
-    Utils::derive_cache_key(key);
+    m_cache_key = Utils::derive_cache_key(key);
 
     //  get_ringdb_key();
 }
+//-------------------------------------------------------------------------------------------------------------------
+//crypto::chacha_key wallet2::get_ringdb_key()
+//{
+//  if (!m_ringdb_key)
+//  {
+//    MINFO("caching ringdb key");
+//    crypto::chacha_key key;
+//    generate_chacha_key_from_secret_keys(key);
+//    m_ringdb_key = key;
+//  }
+//  return *m_ringdb_key;
+//}
 
 
 } // namespace

@@ -55,6 +55,7 @@ set(wallet_api_private_headers
   transaction_info.h
   transaction_history.h
   pending_transaction.h
+  utils.h
   common_defines.h
   address_book.h
   subaddress.h

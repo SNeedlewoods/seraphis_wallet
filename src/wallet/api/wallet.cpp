@@ -410,6 +410,7 @@ WalletImpl::WalletImpl(NetworkType nettype, uint64_t kdf_rounds)
     m_subaddress.reset(new SubaddressImpl(this));
     m_subaddressAccount.reset(new SubaddressAccountImpl(this));
     m_wallet_settings.reset(new WalletSettings(nettype, kdf_rounds));
+    m_wallet_keys.reset(new WalletKeys());
 
 
     m_refreshIntervalMillis = DEFAULT_REFRESH_INTERVAL_MILLIS;

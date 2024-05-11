@@ -28,14 +28,20 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
-// Utility tools for the wallet API
+//paired header
+#include "utils.h"
 
-#include "include_base_utils.h"                     // LOG_PRINT_x
+//local headers
 #include "common/util.h"
-#include "crypto/chacha.h"
 #include "crypto/hash.h"
+#include "crypto/hash-ops.h"
+#include "include_base_utils.h"                     // LOG_PRINT_x
 
+//third party headers
 #include "mlocker.h"
+
+//standard headers
+
 
 using namespace std;
 

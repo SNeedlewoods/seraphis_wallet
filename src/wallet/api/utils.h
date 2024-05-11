@@ -28,49 +28,34 @@
 //
 // Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
-// Handle keys for the wallet API
+// Utility tools for the wallet API
 
 #pragma once
 
 //local headers
-#include "cryptonote_basic/account.h"
 #include "crypto/chacha.h"
-#include "wallet2_api.h"
-#include "wallet_settings.h"
 
 //third party headers
-#include "wipeable_string.h"
 
 //standard headers
 
 //forward declarations
 
 
-namespace Monero
-{
+namespace Monero {
+namespace Utils {
 
-////
-// WalletKeys
-// - housing for critical data like password and keys
-///
-class WalletKeys
-{
-public:
-    WalletKeys();
+bool isAddressLocal(const std::string &address);
 
-    /**
-    * brief: setup_keys - generates chacha key from password and sets m_cache_key
-    * param: password -
-    * param: wallet_settings -
-    * param: account -
-    */
-    void setup_keys(const epee::wipeable_string &password, const std::unique_ptr<WalletSettings> &wallet_settings, cryptonote::account_base &account);
+void onStartup();
 
-private:
-    friend class WalletImpl;
+// TODO : consider using another namespace KeyUtils if more key related stuff ends up here
+/**
+* brief: derive_cache_key - Derives the chacha key to encrypt wallet cache files given the chacha key to encrypt the wallet keys files
+* param: keys_data_key -
+* return: crypto::chacha_key the chacha key that encrypts the wallet cache files
+*/
+crypto::chacha_key derive_cache_key(const crypto::chacha_key &keys_data_key);
 
-    crypto::chacha_key m_cache_key;
-};
-
-
-} // namespace
+} // namespace Utils
+} // namespace Monero
