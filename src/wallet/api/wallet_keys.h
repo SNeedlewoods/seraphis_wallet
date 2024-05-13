@@ -49,7 +49,6 @@
 
 namespace Monero
 {
-
 ////
 // WalletKeys
 // - housing for critical data like password and keys
@@ -57,15 +56,40 @@ namespace Monero
 class WalletKeys
 {
 public:
+    struct keys_file_data
+    {
+      crypto::chacha_iv iv;
+      std::string account_data;
+
+      BEGIN_SERIALIZE_OBJECT()
+        FIELD(iv)
+        FIELD(account_data)
+      END_SERIALIZE()
+    };
+
     WalletKeys();
 
+    /**
+    * brief: create_keys_file -
+    * param: TODO -
+    */
+    void create_keys_file(const std::string &wallet_, bool watch_only, const epee::wipeable_string &password, bool create_address_file, cryptonote::account_base &account, const std::unique_ptr<WalletSettings> &wallet_settings);
+    /**
+    * brief: get_keys_file_data -
+    * param: password - password of wallet file
+    * param: watch_only -
+    * param: account -
+    * param: kdf_rounds -
+    * return: TODO -
+    */
+    boost::optional<WalletKeys::keys_file_data> get_keys_file_data(const epee::wipeable_string &password, bool watch_only, cryptonote::account_base &account, const std::unique_ptr<WalletSettings> &wallet_settings);
     /**
     * brief: get_ringdb_key - generates/returns chacha key for ringdb
     * param: account -
     * param: kdf_rounds -
     * return: m_ringdb_key
     */
-    crypto::chacha_key get_ringdb_key(cryptonote::account_base &account, const std::uint64_t &kdf_rounds);
+    crypto::chacha_key get_ringdb_key(cryptonote::account_base &account, const std::uint64_t kdf_rounds);
     /**
     * brief: setup_keys - generates chacha key from password and sets m_cache_key
     * param: password -
@@ -73,6 +97,16 @@ public:
     * param: account -
     */
     void setup_keys(const epee::wipeable_string &password, const std::unique_ptr<WalletSettings> &wallet_settings, cryptonote::account_base &account);
+    /**
+    * brief: store_keys - stores wallet information to wallet file
+    * param: keys_file_name - name of wallet file
+    * param: password - password of wallet file
+    * param: watch_only - true to save only view key, false to save both spend and view keys
+    * param: account -
+    * param: kdf_rounds -
+    * return: true if succeeded
+    */
+    bool store_keys(const std::string &keys_file_name, const epee::wipeable_string &password, bool watch_only, cryptonote::account_base &account, const std::unique_ptr<WalletSettings> &wallet_settings);
 
 private:
     friend class WalletImpl;

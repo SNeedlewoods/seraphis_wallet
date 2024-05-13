@@ -907,6 +907,7 @@ bool WalletImpl::store(const std::string &path)
     epee::wipeable_string password = path.empty() ? epee::wipeable_string() : m_password;
     clearStatus();
     try {
+        // TODO : think about this
 //        trim_hashchain();
 
         const bool had_old_wallet_files = !m_wallet_settings->m_wallet_file.empty();
@@ -950,6 +951,7 @@ bool WalletImpl::store(const std::string &path)
             }
         }
 
+        // TODO NEXT
         // get wallet cache data
 //        boost::optional<wallet2::cache_file_data> cache_file_data = get_cache_file_data();
 //        THROW_WALLET_EXCEPTION_IF(cache_file_data == boost::none, error::wallet_internal_error, "failed to generate wallet cache data");
@@ -1654,8 +1656,10 @@ PendingTransaction *WalletImpl::createTransactionMultDest(const std::vector<stri
             break;
         }
         try {
-            size_t fake_outs_count = mixin_count > 0 ? mixin_count : m_wallet->default_mixin();
-            fake_outs_count = m_wallet->adjust_mixin(mixin_count);
+//            size_t fake_outs_count = mixin_count > 0 ? mixin_count : m_wallet->default_mixin();
+//            fake_outs_count = m_wallet->adjust_mixin(mixin_count);
+            // TODO : I don't think we need default_mixin here, which means maybe we don't need it at all anymore!?
+            size_t fake_outs_count = m_wallet->adjust_mixin(mixin_count);
 
             if (amount) {
                 transaction->m_pending_tx = m_wallet->create_transactions_2(dsts, fake_outs_count, 0 /* unlock_time */,
@@ -2651,17 +2655,17 @@ bool WalletImpl::setRing(const std::string &key_image, const std::vector<uint64_
 
 void WalletImpl::segregatePreForkOutputs(bool segregate)
 {
-    m_wallet->segregate_pre_fork_outputs(segregate);
+    m_wallet_settings->m_segregate_pre_fork_outputs = segregate;
 }
 
 void WalletImpl::segregationHeight(uint64_t height)
 {
-    m_wallet->segregation_height(height);
+    m_wallet_settings->m_segregation_height = height;
 }
 
 void WalletImpl::keyReuseMitigation2(bool mitigation)
 {
-    m_wallet->key_reuse_mitigation2(mitigation);
+    m_wallet_settings->m_key_reuse_mitigation2 = mitigation;
 }
 
 bool WalletImpl::lockKeysFile()
@@ -2732,7 +2736,7 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
   const crypto::secret_key& recovery_param, bool recover, bool two_random, bool create_address_file)
 {
     // Clear
-//    m_wallet_settings.clear();
+    m_wallet_settings->clear();
 
     m_wallet_settings->prepare_file_names(wallet_);
 
@@ -2757,21 +2761,7 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
         setRefreshFromBlockHeight(estimateBlockChainHeight());
     }
 
-    // TODO : implement new create_keys_file() function for API
-    if (!wallet_.empty())
-    {
-//        bool r = store_keys(m_wallet_settings->m_keys_file, password, false /* watch_only */);
-//        THROW_WALLET_EXCEPTION_IF(!r, tools::error::file_save_error, m_wallet_settings->m_keys_file);
-
-        if (create_address_file)
-        {
-//            r = save_to_file(m_wallet_settings->m_wallet_file + ".address.txt",
-//                             m_account.get_public_address_str(m_wallet_settings->m_nettype),
-//                             true /* is_printable */);
-//            if(!r) MERROR("String with address text not saved");
-        }
-    }
-    // END : implement new create_keys_file() function for API
+    m_wallet_keys->create_keys_file(wallet_, false /* watch_only */, password, create_address_file, m_account, m_wallet_settings);
 
     // TODO : implement new setup_new_blockchain() function for API
 //    m_wallet->setup_new_blockchain();

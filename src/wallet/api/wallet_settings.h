@@ -54,10 +54,29 @@ enum AskPasswordType
     AskPasswordToDecrypt = 2,
 };
 
+enum BackgroundMiningSetupType {
+    BackgroundMiningMaybe = 0,
+    BackgroundMiningYes = 1,
+    BackgroundMiningNo = 2,
+};
+
+enum ExportFormat {
+    Binary = 0,
+    Ascii,
+};
+
+enum RefreshType {
+    RefreshFull,
+    RefreshOptimizeCoinbase,
+    RefreshNoCoinbase,
+    RefreshDefault = RefreshOptimizeCoinbase,
+};
+
 class WalletSettings
 {
 public:
     WalletSettings(NetworkType nettype, uint64_t kdf_rounds);
+    void clear();
     void prepare_file_names(const std::string &file_path);
 
 private:
@@ -65,17 +84,58 @@ private:
     friend struct Wallet2CallbackImpl;
     friend class WalletKeys;
 
+    AskPasswordType m_ask_password;
+
+    BackgroundMiningSetupType m_setup_background_mining;
+
+    bool m_always_confirm_transfers;
+    bool m_auto_low_priority;
+    bool m_auto_refresh;
+    bool m_confirm_backlog;
+    bool m_confirm_export_overwrite;
+    bool m_ignore_fractional_outputs;
+    bool m_key_reuse_mitigation2;
+    bool m_load_deprecated_formats;
+    bool m_merge_destinations;
+    bool m_print_ring_members;
+    bool m_show_wallet_name_when_locked;
+    bool m_segregate_pre_fork_outputs;
+    bool m_store_tx_info; /* request txkey to be returned in RPC, and store in the wallet cache file */
+    bool m_track_uses;
+    bool m_unattended;
+    bool m_watch_only;
+
+    ExportFormat m_export_format;
+
+    hw::device::device_type m_key_device_type;
+
     NetworkType m_nettype;
-    std::uint64_t m_kdf_rounds;
-    std::uint64_t m_refresh_from_block_height;
+
+    RefreshType m_refresh_type;
+
+    std::size_t m_subaddress_lookahead_major;
+    std::size_t m_subaddress_lookahead_minor;
+
+    std::string m_device_derivation_path;
+    std::string m_device_name;
+    std::string m_keys_file;
     std::string m_seed_language;
     std::string m_wallet_file;
-    std::string m_keys_file;
-//    std::string m_mms_file;
-    AskPasswordType m_ask_password;
-    bool m_watch_only;
-    bool m_unattended;
-    hw::device::device_type m_key_device_type;
+
+    std::uint32_t m_confirm_backlog_threshold;
+    std::uint32_t m_default_priority;
+    std::uint32_t m_inactivity_lock_timeout;
+    std::uint32_t m_min_output_count;
+    std::uint64_t m_ignore_outputs_above;
+    std::uint64_t m_ignore_outputs_below;
+    std::uint64_t m_kdf_rounds;
+    std::uint64_t m_max_reorg_depth;
+    std::uint64_t m_min_output_value;
+    std::uint64_t m_refresh_from_block_height;
+    std::uint64_t m_segregation_height;
+    // m_skip_to_height is useful when we don't want to modify the wallet's restore height.
+    // m_refresh_from_block_height is also a wallet's restore height which should remain constant unless explicitly modified by the user.
+    std::uint64_t m_skip_to_height;
 };
 
 
