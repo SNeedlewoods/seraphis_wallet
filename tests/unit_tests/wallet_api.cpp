@@ -28,6 +28,7 @@
 
 #include <iostream>
 
+#include "boost/filesystem.hpp"
 #include "wallet/api/wallet.h"
 #include "gtest/gtest.h"
 
@@ -41,8 +42,12 @@ TEST(wallet_api, create_wallet)
     std::string wallet_password = "wallet password";
     std::string seed_language = "English";
 
-    // Create Mainnet wallet
+    // create mainnet wallet
     WalletImpl *wallet = new WalletImpl();
-    ASSERT_TRUE(wallet->create(wallet_path, wallet_password, seed_language));
+    EXPECT_TRUE(wallet->create(wallet_path, wallet_password, seed_language));
+//    ASSERT_TRUE(wallet->create(wallet_path, wallet_password, seed_language));
+
+    // clean-up
+    boost::filesystem::remove(wallet_path + ".keys");
 }
 

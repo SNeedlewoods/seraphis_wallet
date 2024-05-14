@@ -34,6 +34,7 @@
 
 //local headers
 #include "cryptonote_basic/account.h"
+#include "cryptonote_basic/subaddress_index.h"
 #include "crypto/crypto.h"
 #include "device/device.hpp"
 #include "wallet2_api.h"
@@ -75,14 +76,72 @@ enum RefreshType {
     RefreshDefault = RefreshOptimizeCoinbase,
 };
 
+class hashchain
+{
+public:
+    hashchain(): m_genesis(crypto::null_hash), m_offset(0) {}
+
+    size_t size() const { return m_blockchain.size() + m_offset; }
+    size_t offset() const { return m_offset; }
+    const crypto::hash &genesis() const { return m_genesis; }
+    void push_back(const crypto::hash &hash) { if (m_offset == 0 && m_blockchain.empty()) m_genesis = hash; m_blockchain.push_back(hash); }
+    bool is_in_bounds(size_t idx) const { return idx >= m_offset && idx < size(); }
+    const crypto::hash &operator[](size_t idx) const { return m_blockchain[idx - m_offset]; }
+    crypto::hash &operator[](size_t idx) { return m_blockchain[idx - m_offset]; }
+    void crop(size_t height) { m_blockchain.resize(height - m_offset); }
+    void clear() { m_offset = 0; m_blockchain.clear(); }
+    bool empty() const { return m_blockchain.empty() && m_offset == 0; }
+    void trim(size_t height) { while (height > m_offset && m_blockchain.size() > 1) { m_blockchain.pop_front(); ++m_offset; } m_blockchain.shrink_to_fit(); }
+    void refill(const crypto::hash &hash) { m_blockchain.push_back(hash); --m_offset; }
+
+    template <class t_archive>
+        inline void serialize(t_archive &a, const unsigned int ver)
+        {
+            a & m_offset;
+            a & m_genesis;
+            a & m_blockchain;
+        }
+
+    BEGIN_SERIALIZE_OBJECT()
+    VERSION_FIELD(0)
+    VARINT_FIELD(m_offset)
+    FIELD(m_genesis)
+    FIELD(m_blockchain)
+    END_SERIALIZE()
+
+private:
+    size_t m_offset;
+    crypto::hash m_genesis;
+    std::deque<crypto::hash> m_blockchain;
+};
+
 class WalletSettings
 {
 public:
     WalletSettings(NetworkType nettype, uint64_t kdf_rounds);
     /**
+    * brief: add_subaddress_account -
+    * param: label -
+    */
+    void add_subaddress_account(const std::string &label);
+    /**
     * brief: clear -
     */
     void clear();
+    /**
+    * brief: expand_subaddresses -
+    * param: index -
+    */
+    void expand_subaddresses(const cryptonote::subaddress_index &index);
+    /**
+    * brief: get_num_subaddress_accounts -
+    */
+    size_t get_num_subaddress_accounts() const { return m_subaddress_labels.size(); }
+    /**
+    * brief: get_num_subaddresses -
+    * param: index_major -
+    */
+    size_t get_num_subaddresses(uint32_t index_major) const { return index_major < m_subaddress_labels.size() ? m_subaddress_labels[index_major].size() : 0; }
     /**
     * brief: init_type -
     * param: device_type -
@@ -95,6 +154,10 @@ public:
     * param: file_path -
     */
     void prepare_file_names(const std::string &file_path);
+    /**
+    * brief: setup_new_blockchain -
+    */
+    void setup_new_blockchain();
 
 private:
     friend class WalletImpl;
@@ -130,6 +193,8 @@ private:
 
     ExportFormat m_export_format;
 
+    hashchain m_blockchain;
+
     hw::device::device_type m_key_device_type;
 
     NetworkType m_nettype;
@@ -157,6 +222,7 @@ private:
     std::uint64_t m_ignore_outputs_above;
     std::uint64_t m_ignore_outputs_below;
     std::uint64_t m_kdf_rounds;
+    std::uint64_t m_last_block_reward;
     std::uint64_t m_max_reorg_depth;
     std::uint64_t m_min_output_value;
     std::uint64_t m_refresh_from_block_height;
@@ -165,8 +231,11 @@ private:
     // m_refresh_from_block_height is also a wallet's restore height which should remain constant unless explicitly modified by the user.
     std::uint64_t m_skip_to_height;
 
+    std::unordered_map<crypto::public_key, cryptonote::subaddress_index> m_subaddresses;
+
     std::vector<crypto::public_key> m_multisig_derivations;
     std::vector<crypto::public_key> m_multisig_signers;
+    std::vector<std::vector<std::string>> m_subaddress_labels;
 };
 
 

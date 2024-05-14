@@ -391,7 +391,6 @@ bool WalletKeys::store_keys(const std::string &keys_file_name,
     r = r && Utils::save_to_file(tmp_file_name, buf);
     CHECK_AND_ASSERT_MES(r, false, "failed to generate wallet keys file " << tmp_file_name);
 
-    // TODO NEXT 1
     unlock_keys_file(wallet_settings->m_wallet_file, wallet_settings->m_keys_file);
     std::error_code e = tools::replace_file(tmp_file_name, keys_file_name);
     lock_keys_file(wallet_settings->m_wallet_file, wallet_settings->m_keys_file);

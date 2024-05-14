@@ -131,7 +131,6 @@ private:
     crypto::chacha_key m_cache_key;
 
     std::unique_ptr<tools::file_locker> m_keys_file_locker;
-
 };
 
 

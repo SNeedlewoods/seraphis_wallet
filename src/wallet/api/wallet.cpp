@@ -399,6 +399,7 @@ WalletImpl::WalletImpl(NetworkType nettype, uint64_t kdf_rounds)
     , m_rebuildWalletCache(false)
     , m_is_connected(false)
     , m_refreshShouldRescan(false)
+    , m_account_public_address{crypto::null_pkey, crypto::null_pkey}
 {
     m_wallet.reset(new tools::wallet2(static_cast<cryptonote::network_type>(nettype), kdf_rounds, true));
     m_history.reset(new TransactionHistoryImpl(this));
@@ -1400,7 +1401,7 @@ void WalletImpl::addSubaddressAccount(const std::string& label)
 }
 size_t WalletImpl::numSubaddressAccounts() const
 {
-    return m_wallet->get_num_subaddress_accounts();
+    return m_wallet_settings->get_num_subaddress_accounts();
 }
 size_t WalletImpl::numSubaddresses(uint32_t accountIndex) const
 {
@@ -2761,9 +2762,7 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
 
     m_wallet_keys->create_keys_file(wallet_, false /* watch_only */, password, create_address_file, m_account, m_wallet_settings);
 
-    // TODO : implement new setup_new_blockchain() function for API
-//    m_wallet->setup_new_blockchain();
-    // END : implement new create_keys_file() function for API
+    m_wallet_settings->setup_new_blockchain();
 
     if (!wallet_.empty())
         store();
