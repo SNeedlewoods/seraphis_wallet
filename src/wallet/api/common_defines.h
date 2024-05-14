@@ -3,5 +3,11 @@
 
 #define tr(x) (x)
 
+#define DEFAULT_INACTIVITY_LOCK_TIMEOUT 90 // a minute and a half
+
+#define SUBADDRESS_LOOKAHEAD_MAJOR 50
+#define SUBADDRESS_LOOKAHEAD_MINOR 200
+
+
 #endif
 

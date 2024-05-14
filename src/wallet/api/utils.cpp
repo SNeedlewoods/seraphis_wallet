@@ -32,18 +32,22 @@
 #include "utils.h"
 
 //local headers
+#include "common_defines.h"
 #include "common/util.h"
 #include "crypto/hash.h"
 #include "crypto/hash-ops.h"
 #include "include_base_utils.h"                     // LOG_PRINT_x
 
 //third party headers
+#include "file_io_utils.h"
 #include "mlocker.h"
+#include "openssl/pem.h"
 
 //standard headers
 
 
-using namespace std;
+static const std::string ASCII_OUTPUT_MAGIC = "MoneroAsciiDataV1";
+
 
 namespace Monero {
 namespace Utils {
@@ -66,12 +70,29 @@ void onStartup()
 #endif
 }
 
+bool save_to_file(const std::string &path_to_file, const std::string &raw, bool is_printable, ExportFormat export_format)
+{
+    if (is_printable || export_format == ExportFormat::Binary)
+        return epee::file_io_utils::save_string_to_file(path_to_file, raw);
+
+    FILE *fp = fopen(path_to_file.c_str(), "w+");
+    if (!fp)
+    {
+        MERROR("Failed to open wallet file for writing: " << path_to_file << ": " << strerror(errno));
+        return false;
+    }
+
+    // Save the result b/c we need to close the fp before returning success/failure.
+    int write_result = PEM_write(fp, ASCII_OUTPUT_MAGIC.c_str(), "", (const unsigned char *) raw.c_str(), raw.length());
+    fclose(fp);
+
+    if (write_result == 0)
+        return false;
+    else
+        return true;
+}
+
 // TODO : consider using another namespace KeyUtils if more key related stuff ends up here
-/**
-* brief: derive_cache_key - Derives the chacha key to encrypt wallet cache files given the chacha key to encrypt the wallet keys files
-* param: keys_data_key -
-* return: crypto::chacha_key the chacha key that encrypts the wallet cache files
-*/
 crypto::chacha_key derive_cache_key(const crypto::chacha_key &keys_data_key)
 {
     static_assert(crypto::HASH_SIZE == sizeof(crypto::chacha_key), "Mismatched sizes of hash and chacha key");

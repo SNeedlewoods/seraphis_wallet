@@ -33,6 +33,7 @@
 #pragma once
 
 //local headers
+#include "common/util.h"
 #include "cryptonote_basic/account.h"
 #include "crypto/chacha.h"
 #include "wallet2_api.h"
@@ -91,6 +92,13 @@ public:
     */
     crypto::chacha_key get_ringdb_key(cryptonote::account_base &account, const std::uint64_t kdf_rounds);
     /**
+    * brief: lock_keys_file -
+    * param: wallet_file -
+    * param: keys_file -
+    * return:
+    */
+    bool lock_keys_file(std::string wallet_file, std::string keys_file);
+    /**
     * brief: setup_keys - generates chacha key from password and sets m_cache_key
     * param: password -
     * param: wallet_settings -
@@ -107,12 +115,23 @@ public:
     * return: true if succeeded
     */
     bool store_keys(const std::string &keys_file_name, const epee::wipeable_string &password, bool watch_only, cryptonote::account_base &account, const std::unique_ptr<WalletSettings> &wallet_settings);
+    /**
+    * brief: unlock_keys_file -
+    * param: wallet_file -
+    * param: keys_file -
+    * return:
+    */
+    bool unlock_keys_file(std::string wallet_file, std::string keys_file);
 
 private:
     friend class WalletImpl;
 
-    crypto::chacha_key m_cache_key;
     boost::optional<crypto::chacha_key> m_ringdb_key;
+
+    crypto::chacha_key m_cache_key;
+
+    std::unique_ptr<tools::file_locker> m_keys_file_locker;
+
 };
 
 

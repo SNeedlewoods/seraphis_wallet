@@ -33,6 +33,7 @@
 #pragma once
 
 //local headers
+#include "wallet_settings.h"
 #include "crypto/chacha.h"
 
 //third party headers
@@ -45,10 +46,26 @@
 namespace Monero {
 namespace Utils {
 
+/**
+* brief: isAddressLocal -
+* param: address -
+* return:
+*/
 bool isAddressLocal(const std::string &address);
-
+/**
+* brief: onStartup -
+*/
 void onStartup();
 
+/**
+* brief: save_to_file -
+* param: path_to_file -
+* param: raw -
+* param: is_printable -
+* param: export_format -
+* return: true if saving succeeded
+*/
+bool save_to_file(const std::string &path_to_file, const std::string &raw, bool is_printable = false, ExportFormat export_format = ExportFormat::Binary);
 // TODO : consider using another namespace KeyUtils if more key related stuff ends up here
 /**
 * brief: derive_cache_key - Derives the chacha key to encrypt wallet cache files given the chacha key to encrypt the wallet keys files

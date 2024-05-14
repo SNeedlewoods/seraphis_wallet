@@ -32,18 +32,13 @@
 #include "wallet_settings.h"
 
 //local headers
+#include "common_defines.h"
 #include "cryptonote_config.h"
 
 //third party headers
 #include "string_tools.h"
 
 //standard headers
-
-
-#define DEFAULT_INACTIVITY_LOCK_TIMEOUT 90 // a minute and a half
-
-#define SUBADDRESS_LOOKAHEAD_MAJOR 50
-#define SUBADDRESS_LOOKAHEAD_MINOR 200
 
 
 namespace Monero
@@ -58,10 +53,12 @@ WalletSettings::WalletSettings(NetworkType nettype, uint64_t kdf_rounds) :
     m_auto_refresh(true),
     m_confirm_backlog(true),
     m_confirm_export_overwrite(true),
+    m_enable_multisig(false),
     m_ignore_fractional_outputs(true),
     m_key_reuse_mitigation2(true),
     m_load_deprecated_formats(false),
     m_merge_destinations(false),
+    m_multisig(false),
     m_print_ring_members(false),
     m_show_wallet_name_when_locked(false),
     m_segregate_pre_fork_outputs(true),
@@ -76,10 +73,13 @@ WalletSettings::WalletSettings(NetworkType nettype, uint64_t kdf_rounds) :
     m_subaddress_lookahead_major(SUBADDRESS_LOOKAHEAD_MAJOR),
     m_subaddress_lookahead_minor(SUBADDRESS_LOOKAHEAD_MINOR),
     m_confirm_backlog_threshold(0),
+    m_default_mixin(0),
     m_default_priority(0),
     m_inactivity_lock_timeout(DEFAULT_INACTIVITY_LOCK_TIMEOUT),
     // TODO : why not set to DEFAULT_MIN_OUTPUT_COUNT, then we can skip setting to DEFAULT_MIN_OUTPUT_COUNT when m_min_output_count == 0 in wallet2::create_transactions_2()
     m_min_output_count(0),
+    m_multisig_rounds_passed(0),
+    m_multisig_threshold(0),
     m_ignore_outputs_above(MONEY_SUPPLY),
     m_ignore_outputs_below(0),
     m_kdf_rounds(kdf_rounds),
@@ -109,10 +109,24 @@ void WalletSettings::clear()
 //  m_address_book.clear();
 //  m_subaddresses.clear();
 //  m_subaddress_labels.clear();
-//  m_multisig_rounds_passed = 0;
+    m_multisig_rounds_passed = 0;
 //  m_device_last_key_image_sync = 0;
 //  m_pool_info_query_time = 0;
-  m_skip_to_height = 0;
+    m_skip_to_height = 0;
+}
+//-------------------------------------------------------------------------------------------------------------------
+void WalletSettings::init_type(hw::device::device_type device_type,
+                        cryptonote::account_base &account,
+                        cryptonote::account_public_address &account_public_address)
+{
+    // TODO : consider making m_account_public_address a member of WalletSettings, could be a cleaner solution
+    account_public_address = account.get_keys().m_account_address;
+    m_watch_only = false;
+    m_multisig = false;
+    m_multisig_threshold = 0;
+    m_multisig_signers.clear();
+    m_original_keys_available = false;
+    m_key_device_type = hw::device::device_type::SOFTWARE;
 }
 //-------------------------------------------------------------------------------------------------------------------
 void WalletSettings::prepare_file_names(const std::string& file_path)
@@ -126,7 +140,7 @@ void WalletSettings::prepare_file_names(const std::string& file_path)
     { //provided wallet file name
         m_keys_file += ".keys";
     }
-//    m_mms_file = file_path + ".mms";
+    m_mms_file = file_path + ".mms";
 }
 
 

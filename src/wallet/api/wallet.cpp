@@ -2751,9 +2751,7 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
 
     crypto::secret_key retval = m_account.generate(recovery_param, recover, two_random);
 
-    m_account_public_address = m_account.get_keys().m_account_address;
-    m_wallet_settings->m_watch_only = false;
-    m_wallet_settings->m_key_device_type = hw::device::device_type::SOFTWARE;
+    m_wallet_settings->init_type(hw::device::device_type::SOFTWARE, m_account, m_account_public_address);
     m_wallet_keys->setup_keys(password, m_wallet_settings, m_account);
 
     // calculate a starting refresh height

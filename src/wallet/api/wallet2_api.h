@@ -44,6 +44,7 @@
 //  Public interface for libwallet library
 namespace Monero {
 
+// TODO : why use this instead of network_type in cryptonote_config.h?
 enum NetworkType : uint8_t {
     MAINNET = 0,
     TESTNET,

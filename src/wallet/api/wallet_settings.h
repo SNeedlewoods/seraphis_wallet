@@ -33,6 +33,8 @@
 #pragma once
 
 //local headers
+#include "cryptonote_basic/account.h"
+#include "crypto/crypto.h"
 #include "device/device.hpp"
 #include "wallet2_api.h"
 
@@ -42,6 +44,7 @@
 //standard headers
 #include <cstdint>
 #include <string>
+#include <vector>
 
 
 namespace Monero
@@ -76,7 +79,21 @@ class WalletSettings
 {
 public:
     WalletSettings(NetworkType nettype, uint64_t kdf_rounds);
+    /**
+    * brief: clear -
+    */
     void clear();
+    /**
+    * brief: init_type -
+    * param: device_type -
+    * param: account -
+    * param: account_public_address -
+    */
+    void init_type(hw::device::device_type device_type, cryptonote::account_base &account, cryptonote::account_public_address &account_public_address);
+    /**
+    * brief: prepare_file_names -
+    * param: file_path -
+    */
     void prepare_file_names(const std::string &file_path);
 
 private:
@@ -93,10 +110,13 @@ private:
     bool m_auto_refresh;
     bool m_confirm_backlog;
     bool m_confirm_export_overwrite;
+    bool m_enable_multisig;
     bool m_ignore_fractional_outputs;
     bool m_key_reuse_mitigation2;
     bool m_load_deprecated_formats;
     bool m_merge_destinations;
+    bool m_multisig;
+    bool m_original_keys_available;
     bool m_print_ring_members;
     bool m_show_wallet_name_when_locked;
     bool m_segregate_pre_fork_outputs;
@@ -104,6 +124,9 @@ private:
     bool m_track_uses;
     bool m_unattended;
     bool m_watch_only;
+
+    crypto::secret_key m_original_view_secret_key;
+    cryptonote::account_public_address m_original_address;
 
     ExportFormat m_export_format;
 
@@ -119,13 +142,18 @@ private:
     std::string m_device_derivation_path;
     std::string m_device_name;
     std::string m_keys_file;
+    std::string m_mms_file;
     std::string m_seed_language;
     std::string m_wallet_file;
 
     std::uint32_t m_confirm_backlog_threshold;
+    std::uint32_t m_default_mixin;
     std::uint32_t m_default_priority;
     std::uint32_t m_inactivity_lock_timeout;
     std::uint32_t m_min_output_count;
+    std::uint32_t m_multisig_rounds_passed;
+    std::uint32_t m_multisig_threshold;
+
     std::uint64_t m_ignore_outputs_above;
     std::uint64_t m_ignore_outputs_below;
     std::uint64_t m_kdf_rounds;
@@ -136,6 +164,9 @@ private:
     // m_skip_to_height is useful when we don't want to modify the wallet's restore height.
     // m_refresh_from_block_height is also a wallet's restore height which should remain constant unless explicitly modified by the user.
     std::uint64_t m_skip_to_height;
+
+    std::vector<crypto::public_key> m_multisig_derivations;
+    std::vector<crypto::public_key> m_multisig_signers;
 };
 
 

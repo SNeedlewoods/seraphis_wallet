@@ -32,9 +32,16 @@
 #include "wallet_keys.h"
 
 //local headers
+#include "boost/filesystem.hpp"
 #include "cryptonote_basic/cryptonote_format_utils.h"
+#include "cryptonote_basic/cryptonote_basic_impl.h"
+#include "cryptonote_config.h"
 #include "device/device.hpp"
+#include "serialization/binary_archive.h"
+#include "serialization/binary_utils.h"
+#include "serialization/string.h"
 #include "wallet/wallet_errors.h"
+#include "wallet/api/utils.h"
 
 //third party headers
 #include "byte_slice.h"
@@ -77,9 +84,10 @@ void WalletKeys::create_keys_file(const std::string &wallet_,
 
         if (create_address_file)
         {
-            // TODO NEXT 2
-//            r = save_to_file(wallet_settings->m_wallet_file + ".address.txt", account.get_public_address_str(wallet_settings->m_nettype), true);
-//            if(!r) MERROR("String with address text not saved");
+            r = Utils::save_to_file(wallet_settings->m_wallet_file + ".address.txt",
+                                    account.get_public_address_str(static_cast<cryptonote::network_type>(wallet_settings->m_nettype)),
+                                    true);
+            if(!r) MERROR("String with address text not saved");
         }
     }
 }
@@ -138,28 +146,28 @@ boost::optional<WalletKeys::keys_file_data> WalletKeys::get_keys_file_data(const
     value2.SetInt((watch_only || wallet_settings->m_watch_only) ? 1 : 0);
     json.AddMember("watch_only", value2, json.GetAllocator());
 
-    // TODO : multisig should get its own place
-//    value2.SetInt(m_multisig ? 1 :0);
-//    json.AddMember("multisig", value2, json.GetAllocator());
-//
-//    value2.SetUint(m_multisig_threshold);
-//    json.AddMember("multisig_threshold", value2, json.GetAllocator());
-//
-//    if (m_multisig)
-//    {
-//        bool r = ::serialization::dump_binary(m_multisig_signers, multisig_signers);
-//        CHECK_AND_ASSERT_MES(r, boost::none, "failed to serialize wallet multisig signers");
-//        value.SetString(multisig_signers.c_str(), multisig_signers.length());
-//        json.AddMember("multisig_signers", value, json.GetAllocator());
-//
-//        r = ::serialization::dump_binary(m_multisig_derivations, multisig_derivations);
-//        CHECK_AND_ASSERT_MES(r, boost::none, "failed to serialize wallet multisig derivations");
-//        value.SetString(multisig_derivations.c_str(), multisig_derivations.length());
-//        json.AddMember("multisig_derivations", value, json.GetAllocator());
-//
-//        value2.SetUint(m_multisig_rounds_passed);
-//        json.AddMember("multisig_rounds_passed", value2, json.GetAllocator());
-//    }
+    value2.SetInt(wallet_settings->m_multisig ? 1 : 0);
+    json.AddMember("multisig", value2, json.GetAllocator());
+
+    value2.SetUint(wallet_settings->m_multisig_threshold);
+    json.AddMember("multisig_threshold", value2, json.GetAllocator());
+
+    // TODO : test create multisig
+    if (wallet_settings->m_multisig)
+    {
+        bool r = ::serialization::dump_binary(wallet_settings->m_multisig_signers, multisig_signers);
+        CHECK_AND_ASSERT_MES(r, boost::none, "failed to serialize wallet multisig signers");
+        value.SetString(multisig_signers.c_str(), multisig_signers.length());
+        json.AddMember("multisig_signers", value, json.GetAllocator());
+
+        r = ::serialization::dump_binary(wallet_settings->m_multisig_derivations, multisig_derivations);
+        CHECK_AND_ASSERT_MES(r, boost::none, "failed to serialize wallet multisig derivations");
+        value.SetString(multisig_derivations.c_str(), multisig_derivations.length());
+        json.AddMember("multisig_derivations", value, json.GetAllocator());
+
+        value2.SetUint(wallet_settings->m_multisig_rounds_passed);
+        json.AddMember("multisig_rounds_passed", value2, json.GetAllocator());
+    }
 
     value2.SetInt(wallet_settings->m_always_confirm_transfers ? 1 : 0);
     json.AddMember("always_confirm_transfers", value2, json.GetAllocator());
@@ -170,9 +178,8 @@ boost::optional<WalletKeys::keys_file_data> WalletKeys::get_keys_file_data(const
     value2.SetInt(wallet_settings->m_store_tx_info ? 1 : 0);
     json.AddMember("store_tx_info", value2, json.GetAllocator());
 
-    // TODO : deprecated? maybe needs to be handled like confirm_non_default_ring_size below for backwards compability
-//    value2.SetUint(m_default_mixin);
-//    json.AddMember("default_mixin", value2, json.GetAllocator());
+    value2.SetUint(wallet_settings->m_default_mixin);
+    json.AddMember("default_mixin", value2, json.GetAllocator());
 
     value2.SetUint(wallet_settings->m_default_priority);
     json.AddMember("default_priority", value2, json.GetAllocator());
@@ -261,9 +268,8 @@ boost::optional<WalletKeys::keys_file_data> WalletKeys::get_keys_file_data(const
     value2.SetUint(wallet_settings->m_subaddress_lookahead_minor);
     json.AddMember("subaddress_lookahead_minor", value2, json.GetAllocator());
 
-    // TODO : afaik this is multisig related and can get removed
-//  value2.SetInt(m_original_keys_available ? 1 : 0);
-//  json.AddMember("original_keys_available", value2, json.GetAllocator());
+    value2.SetInt(wallet_settings->m_original_keys_available ? 1 : 0);
+    json.AddMember("original_keys_available", value2, json.GetAllocator());
 
     value2.SetInt(wallet_settings->m_export_format);
     json.AddMember("export_format", value2, json.GetAllocator());
@@ -280,20 +286,20 @@ boost::optional<WalletKeys::keys_file_data> WalletKeys::get_keys_file_data(const
     value.SetString(wallet_settings->m_device_derivation_path.c_str(), wallet_settings->m_device_derivation_path.size());
     json.AddMember("device_derivation_path", value, json.GetAllocator());
 
-    // TODO : afaik this is also multisig related
-//  std::string original_address;
-//  std::string original_view_secret_key;
-//  if (m_original_keys_available)
-//  {
-//    original_address = get_account_address_as_str(m_nettype, false, m_original_address);
-//    value.SetString(original_address.c_str(), original_address.length());
-//    json.AddMember("original_address", value, json.GetAllocator());
-//    original_view_secret_key = epee::string_tools::pod_to_hex(m_original_view_secret_key);
-//    value.SetString(original_view_secret_key.c_str(), original_view_secret_key.length());
-//    json.AddMember("original_view_secret_key", value, json.GetAllocator());
-//  }
+    std::string original_address;
+    std::string original_view_secret_key;
+    if (wallet_settings->m_original_keys_available)
+    {
+        original_address = cryptonote::get_account_address_as_str(static_cast<cryptonote::network_type>(wallet_settings->m_nettype),
+                                                                  false,
+                                                                  wallet_settings->m_original_address);
+        value.SetString(original_address.c_str(), original_address.length());
+        json.AddMember("original_address", value, json.GetAllocator());
+        original_view_secret_key = epee::string_tools::pod_to_hex(wallet_settings->m_original_view_secret_key);
+        value.SetString(original_view_secret_key.c_str(), original_view_secret_key.length());
+        json.AddMember("original_view_secret_key", value, json.GetAllocator());
+    }
 
-    // TODO : not sure about the following three items (iirc rpc pay is deprecated!?)
     // This value is serialized for compatibility with wallets which support the pay-to-use RPC system
     value2.SetInt(0);
     json.AddMember("persistent_rpc_client_id", value2, json.GetAllocator());
@@ -306,8 +312,8 @@ boost::optional<WalletKeys::keys_file_data> WalletKeys::get_keys_file_data(const
     value2.SetUint64(0);
     json.AddMember("credits_target", value2, json.GetAllocator());
 
-//  value2.SetInt(m_enable_multisig ? 1 : 0);
-//  json.AddMember("enable_multisig", value2, json.GetAllocator());
+    value2.SetInt(wallet_settings->m_enable_multisig ? 1 : 0);
+    json.AddMember("enable_multisig", value2, json.GetAllocator());
 
     // Serialize the JSON object
     rapidjson::StringBuffer buffer;
@@ -325,14 +331,27 @@ boost::optional<WalletKeys::keys_file_data> WalletKeys::get_keys_file_data(const
 //-------------------------------------------------------------------------------------------------------------------
 crypto::chacha_key WalletKeys::get_ringdb_key(cryptonote::account_base &account, const std::uint64_t kdf_rounds)
 {
-  if (!m_ringdb_key)
-  {
-    MINFO("caching ringdb key");
-    crypto::chacha_key key;
-    generate_chacha_key_from_secret_keys(key, account, kdf_rounds);
-    m_ringdb_key = key;
-  }
-  return *m_ringdb_key;
+    if (!m_ringdb_key)
+    {
+        MINFO("caching ringdb key");
+        crypto::chacha_key key;
+        generate_chacha_key_from_secret_keys(key, account, kdf_rounds);
+        m_ringdb_key = key;
+    }
+    return *m_ringdb_key;
+}
+//-------------------------------------------------------------------------------------------------------------------
+bool WalletKeys::lock_keys_file(std::string wallet_file, std::string keys_file)
+{
+    if (wallet_file.empty())
+        return true;
+    if (m_keys_file_locker)
+    {
+        MDEBUG(keys_file << " is already locked.");
+        return false;
+    }
+    m_keys_file_locker.reset(new tools::file_locker(keys_file));
+    return true;
 }
 //-------------------------------------------------------------------------------------------------------------------
 void WalletKeys::setup_keys(const epee::wipeable_string &password,
@@ -362,29 +381,42 @@ bool WalletKeys::store_keys(const std::string &keys_file_name,
                             cryptonote::account_base &account,
                             const std::unique_ptr<WalletSettings> &wallet_settings)
 {
-  boost::optional<WalletKeys::keys_file_data> keys_file_data = get_keys_file_data(password, watch_only, account, wallet_settings);
-  // TODO : maybe add a check like this, because afaiui get_keys_file_data() won't return boost::none
-//  CHECK_AND_ASSERT_MES(keys_file_data.get() != (WalletKeys::keys_file_data) {}, false, "failed to generate wallet keys data");
-  CHECK_AND_ASSERT_MES(keys_file_data != boost::none, false, "failed to generate wallet keys data");
+    boost::optional<WalletKeys::keys_file_data> keys_file_data = get_keys_file_data(password, watch_only, account, wallet_settings);
+    // TODO : not sure in which case get_keys_file_data() will return boost::none
+    CHECK_AND_ASSERT_MES(keys_file_data != boost::none, false, "failed to generate wallet keys data");
+
+    std::string tmp_file_name = keys_file_name + ".new";
+    std::string buf;
+    bool r = ::serialization::dump_binary(keys_file_data.get(), buf);
+    r = r && Utils::save_to_file(tmp_file_name, buf);
+    CHECK_AND_ASSERT_MES(r, false, "failed to generate wallet keys file " << tmp_file_name);
 
     // TODO NEXT 1
-//  std::string tmp_file_name = keys_file_name + ".new";
-//  std::string buf;
-//  bool r = ::serialization::dump_binary(keys_file_data.get(), buf);
-//  r = r && save_to_file(tmp_file_name, buf);
-//  CHECK_AND_ASSERT_MES(r, false, "failed to generate wallet keys file " << tmp_file_name);
-//
-//  unlock_keys_file();
-//  std::error_code e = tools::replace_file(tmp_file_name, keys_file_name);
-//  lock_keys_file();
-//
-//  if (e) {
-//    boost::filesystem::remove(tmp_file_name);
-//    LOG_ERROR("failed to update wallet keys file " << keys_file_name);
-//    return false;
-//  }
-//
-  return true;
+    unlock_keys_file(wallet_settings->m_wallet_file, wallet_settings->m_keys_file);
+    std::error_code e = tools::replace_file(tmp_file_name, keys_file_name);
+    lock_keys_file(wallet_settings->m_wallet_file, wallet_settings->m_keys_file);
+
+    if (e)
+    {
+        boost::filesystem::remove(tmp_file_name);
+        LOG_ERROR("failed to update wallet keys file " << keys_file_name);
+        return false;
+    }
+
+    return true;
+}
+//-------------------------------------------------------------------------------------------------------------------
+bool WalletKeys::unlock_keys_file(std::string wallet_file, std::string keys_file)
+{
+    if (wallet_file.empty())
+        return true;
+    if (!m_keys_file_locker)
+    {
+        MDEBUG(keys_file << " is already unlocked.");
+        return false;
+    }
+    m_keys_file_locker.reset();
+    return true;
 }
 //-------------------------------------------------------------------------------------------------------------------
 
