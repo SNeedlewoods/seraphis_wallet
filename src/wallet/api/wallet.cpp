@@ -1401,11 +1401,11 @@ void WalletImpl::addSubaddressAccount(const std::string& label)
 }
 size_t WalletImpl::numSubaddressAccounts() const
 {
-    return m_wallet_settings->get_num_subaddress_accounts();
+    return m_subaddress->get_num_subaddress_accounts();
 }
 size_t WalletImpl::numSubaddresses(uint32_t accountIndex) const
 {
-    return m_wallet->get_num_subaddresses(accountIndex);
+    return m_subaddress->get_num_subaddresses(accountIndex);
 }
 void WalletImpl::addSubaddress(uint32_t accountIndex, const std::string& label)
 {
@@ -2763,6 +2763,7 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
     m_wallet_keys->create_keys_file(wallet_, false /* watch_only */, password, create_address_file, m_account, m_wallet_settings);
 
     m_wallet_settings->setup_new_blockchain();
+    m_subaddress->add_subaddress_account(tr("Primary account"));
 
     if (!wallet_.empty())
         store();

@@ -44,6 +44,25 @@ public:
     std::vector<SubaddressRow*> getAll() const override;
     void addRow(uint32_t accountIndex, const std::string &label) override;
     void setLabel(uint32_t accountIndex, uint32_t addressIndex, const std::string &label) override;
+    /**
+    * brief: add_subaddress_account -
+    * param: label -
+    */
+    void add_subaddress_account(const std::string &label);
+    /**
+    * brief: expand_subaddresses -
+    * param: index -
+    */
+    void expand_subaddresses(const cryptonote::subaddress_index &index);
+    /**
+    * brief: get_num_subaddress_accounts -
+    */
+    size_t get_num_subaddress_accounts() const;
+    /**
+    * brief: get_num_subaddresses -
+    * param: index_major -
+    */
+    size_t get_num_subaddresses(uint32_t index_major) const;
 
 private:
     void clearRows();

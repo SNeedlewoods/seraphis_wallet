@@ -36,6 +36,17 @@
 
 namespace Monero {
   
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
+static uint32_t get_subaddress_clamped_sum(uint32_t idx, uint32_t extra)
+{
+    static constexpr uint32_t uint32_max = std::numeric_limits<uint32_t>::max();
+    if (idx > uint32_max - extra)
+        return uint32_max;
+    return idx + extra;
+}
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
 Subaddress::~Subaddress() {}
   
 SubaddressImpl::SubaddressImpl(WalletImpl *wallet)
@@ -87,5 +98,61 @@ SubaddressImpl::~SubaddressImpl()
 {
   clearRows();
 }
+
+//-------------------------------------------------------------------------------------------------------------------
+void SubaddressImpl::add_subaddress_account(const std::string &label)
+{
+    uint32_t index_major = (uint32_t)get_num_subaddress_accounts();
+    expand_subaddresses({index_major, 0});
+    m_wallet->m_wallet_settings->m_subaddress_labels[index_major][0] = label;
+}
+//-------------------------------------------------------------------------------------------------------------------
+void SubaddressImpl::expand_subaddresses(const cryptonote::subaddress_index &index)
+{
+    WalletSettings *wallet_settings = m_wallet->m_wallet_settings.get();
+    hw::device &hwdev = m_wallet->m_account.get_device();
+    if (wallet_settings->m_subaddress_labels.size() <= index.major)
+    {
+        // add new accounts
+        cryptonote::subaddress_index index2;
+        const uint32_t major_end = get_subaddress_clamped_sum(index.major, wallet_settings->m_subaddress_lookahead_major);
+        for (index2.major = wallet_settings->m_subaddress_labels.size(); index2.major < major_end; ++index2.major)
+        {
+            const uint32_t end = get_subaddress_clamped_sum((index2.major == index.major ? index.minor : 0), wallet_settings->m_subaddress_lookahead_minor);
+            const std::vector<crypto::public_key> pkeys = hwdev.get_subaddress_spend_public_keys(m_wallet->m_account.get_keys(), index2.major, 0, end);
+            for (index2.minor = 0; index2.minor < end; ++index2.minor)
+            {
+                const crypto::public_key &D = pkeys[index2.minor];
+                wallet_settings->m_subaddresses[D] = index2;
+            }
+        }
+        wallet_settings->m_subaddress_labels.resize(index.major + 1, {"Untitled account"});
+        wallet_settings->m_subaddress_labels[index.major].resize(index.minor + 1);
+        // TODO NOW
+//        get_account_tags();
+    }
+    else if (wallet_settings->m_subaddress_labels[index.major].size() <= index.minor)
+    {
+        // add new subaddresses
+        const uint32_t end = get_subaddress_clamped_sum(index.minor, wallet_settings->m_subaddress_lookahead_minor);
+        const uint32_t begin = wallet_settings->m_subaddress_labels[index.major].size();
+        cryptonote::subaddress_index index2 = {index.major, begin};
+        const std::vector<crypto::public_key> pkeys = hwdev.get_subaddress_spend_public_keys(m_wallet->m_account.get_keys(), index2.major, index2.minor, end);
+        for (; index2.minor < end; ++index2.minor)
+        {
+            const crypto::public_key &D = pkeys[index2.minor - begin];
+            wallet_settings->m_subaddresses[D] = index2;
+        }
+        wallet_settings->m_subaddress_labels[index.major].resize(index.minor + 1);
+    }
+}
+//-------------------------------------------------------------------------------------------------------------------
+size_t SubaddressImpl::get_num_subaddress_accounts() const { return m_wallet->m_wallet_settings->m_subaddress_labels.size(); }
+//-------------------------------------------------------------------------------------------------------------------
+size_t SubaddressImpl::get_num_subaddresses(uint32_t index_major) const
+{
+    return index_major < m_wallet->m_wallet_settings->m_subaddress_labels.size() ? m_wallet->m_wallet_settings->m_subaddress_labels[index_major].size() : 0;
+}
+//-------------------------------------------------------------------------------------------------------------------
 
 } // namespace
