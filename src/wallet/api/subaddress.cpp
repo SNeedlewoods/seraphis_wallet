@@ -128,8 +128,7 @@ void SubaddressImpl::expand_subaddresses(const cryptonote::subaddress_index &ind
         }
         wallet_settings->m_subaddress_labels.resize(index.major + 1, {"Untitled account"});
         wallet_settings->m_subaddress_labels[index.major].resize(index.minor + 1);
-        // TODO NOW
-//        get_account_tags();
+        wallet_settings->get_account_tags(get_num_subaddress_accounts());
     }
     else if (wallet_settings->m_subaddress_labels[index.major].size() <= index.minor)
     {

@@ -104,7 +104,7 @@ public:
     std::string publicMultisigSignerKey() const override;
     std::string path() const override;
     void stop() override;
-    bool store(const std::string &path = "") override;
+    bool store(const std::string &path = "", bool force_rewrite_keys = false) override;
     std::string filename() const override;
     std::string keysFilename() const override;
     bool init(const std::string &daemon_address, uint64_t upper_transaction_size_limit = 0, const std::string &daemon_username = "", const std::string &daemon_password = "", bool use_ssl = false, bool lightWallet = false, const std::string &proxy_address = "") override;
@@ -146,7 +146,7 @@ public:
     std::string getSubaddressLabel(uint32_t accountIndex, uint32_t addressIndex) const override;
     void setSubaddressLabel(uint32_t accountIndex, uint32_t addressIndex, const std::string &label) override;
 
-    MultisigState multisig() const override;
+    MultisigState multisig() override;
     std::string getMultisigInfo() const override;
     std::string makeMultisig(const std::vector<std::string>& info, uint32_t threshold) override;
     std::string exchangeMultisigKeys(const std::vector<std::string> &info, const bool force_update_use_with_caution = false) override;
@@ -228,17 +228,22 @@ public:
     virtual uint64_t getBytesReceived() override;
     virtual uint64_t getBytesSent() override;
 
-    /*!
-     * \brief  Generates a wallet or restores one.
-     * \param  wallet_                 Name of wallet file
-     * \param  password                Password of wallet file
-     * \param  recovery_param          If it is a restore, the recovery key
-     * \param  recover                 Whether it is a restore
-     * \param  two_random              Whether it is a non-deterministic wallet
-     * \param  create_address_file     Whether to create an address file
-     * \return                         The secret key of the generated wallet
-     */
+    /**
+    * brief: generate - generates a wallet or restores one.
+    * param: wallet_ - name of wallet file
+    * param: password - password of wallet file
+    * param: recovery_param - if it is a restore, the recovery key
+    * param: recover - whether it is a restore
+    * param: two_random - whether it is a non-deterministic wallet
+    * param: create_address_file - whether to create an address file
+    * return: the secret key of the generated wallet
+    */
     crypto::secret_key generate(const std::string& wallet_, const epee::wipeable_string& password, const crypto::secret_key& recovery_param, bool recover, bool two_random, bool create_address_file = false);
+    /**
+    * brief: get_cache_file_data -
+    * return: cache_file_data -
+    */
+    boost::optional<WalletSettings::cache_file_data> get_cache_file_data();
 
 private:
     void clearStatus() const;
@@ -269,7 +274,6 @@ private:
     std::unique_ptr<WalletKeys> m_wallet_keys;
     // TODO : consider to move this to `WalletState`
     cryptonote::account_base m_account;
-    cryptonote::account_public_address m_account_public_address;
     mutable boost::mutex m_statusMutex;
     mutable int m_status;
     mutable std::string m_errorString;

@@ -50,6 +50,9 @@
 
 namespace Monero
 {
+
+class WalletSettings;
+
 ////
 // WalletKeys
 // - housing for critical data like password and keys
@@ -63,8 +66,8 @@ public:
       std::string account_data;
 
       BEGIN_SERIALIZE_OBJECT()
-        FIELD(iv)
-        FIELD(account_data)
+      FIELD(iv)
+      FIELD(account_data)
       END_SERIALIZE()
     };
 

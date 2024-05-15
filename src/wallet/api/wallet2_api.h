@@ -525,7 +525,7 @@ struct Wallet
      *               to store to the same file - just pass empty string;
      * \return
      */
-    virtual bool store(const std::string &path) = 0;
+    virtual bool store(const std::string &path = "", bool force_rewrite_keys = false) = 0;
     /*!
      * \brief filename - returns wallet filename
      * \return
@@ -784,7 +784,7 @@ struct Wallet
      * @brief multisig - returns current state of multisig wallet creation process
      * @return MultisigState struct
      */
-    virtual MultisigState multisig() const = 0;
+    virtual MultisigState multisig() = 0;
     /**
      * @brief getMultisigInfo
      * @return serialized and signed multisig info string

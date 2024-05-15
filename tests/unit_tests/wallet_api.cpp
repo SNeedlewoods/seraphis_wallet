@@ -42,12 +42,16 @@ TEST(wallet_api, create_wallet)
     std::string wallet_password = "wallet password";
     std::string seed_language = "English";
 
+    boost::filesystem::remove(wallet_path);
+    boost::filesystem::remove(wallet_path + ".keys");
+
     // create mainnet wallet
     WalletImpl *wallet = new WalletImpl();
     EXPECT_TRUE(wallet->create(wallet_path, wallet_password, seed_language));
-//    ASSERT_TRUE(wallet->create(wallet_path, wallet_password, seed_language));
 
     // clean-up
-    boost::filesystem::remove(wallet_path + ".keys");
+    // TODO : uncomment if done testing created file with cli
+//    boost::filesystem::remove(wallet_path);
+//    boost::filesystem::remove(wallet_path + ".keys");
 }
 

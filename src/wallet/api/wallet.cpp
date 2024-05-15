@@ -31,6 +31,7 @@
 
 #include "wallet.h"
 #include "wallet/wallet_errors.h"
+#include "wallet/api/utils.h"
 #include "pending_transaction.h"
 #include "unsigned_transaction.h"
 #include "transaction_history.h"
@@ -39,6 +40,7 @@
 #include "subaddress_account.h"
 #include "common_defines.h"
 #include "common/util.h"
+#include "serialization/binary_archive.h"
 
 #include "mnemonics/electrum-words.h"
 #include "mnemonics/english.h"
@@ -399,7 +401,6 @@ WalletImpl::WalletImpl(NetworkType nettype, uint64_t kdf_rounds)
     , m_rebuildWalletCache(false)
     , m_is_connected(false)
     , m_refreshShouldRescan(false)
-    , m_account_public_address{crypto::null_pkey, crypto::null_pkey}
 {
     m_wallet.reset(new tools::wallet2(static_cast<cryptonote::network_type>(nettype), kdf_rounds, true));
     m_history.reset(new TransactionHistoryImpl(this));
@@ -903,7 +904,7 @@ void WalletImpl::stop()
     m_wallet->stop();
 }
 
-bool WalletImpl::store(const std::string &path)
+bool WalletImpl::store(const std::string &path, bool force_rewrite_keys)
 {
     epee::wipeable_string password = path.empty() ? epee::wipeable_string() : m_password;
     clearStatus();
@@ -952,99 +953,96 @@ bool WalletImpl::store(const std::string &path)
             }
         }
 
-        // TODO NEXT
         // get wallet cache data
-//        boost::optional<wallet2::cache_file_data> cache_file_data = get_cache_file_data();
-//        THROW_WALLET_EXCEPTION_IF(cache_file_data == boost::none, error::wallet_internal_error, "failed to generate wallet cache data");
-//
-//        const std::string new_file = same_file ? m_wallet_file + ".new" : path;
-//        const std::string old_file = m_wallet_file;
-//        const std::string old_keys_file = m_keys_file;
-//        const std::string old_address_file = m_wallet_file + ".address.txt";
-//        const std::string old_mms_file = m_mms_file;
-//
-//        if (!same_file)
-//        {
-//            prepare_file_names(path);
-//        }
-//
-//        if (!same_file || force_rewrite_keys)
-//        {
-//            bool r = store_keys(m_keys_file, password, m_watch_only);
-//            THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_keys_file);
-//        }
-//
-//        if (!same_file && had_old_wallet_files)
-//        {
-//            bool r = false;
-//            if (boost::filesystem::exists(old_address_file))
-//            {
-//                // save address to the new file
-//                const std::string address_file = m_wallet_file + ".address.txt";
-//                r = save_to_file(address_file, m_account.get_public_address_str(m_nettype), true);
-//                THROW_WALLET_EXCEPTION_IF(!r, error::file_save_error, m_wallet_file);
-//                // remove old address file
-//                r = boost::filesystem::remove(old_address_file);
-//                if (!r) {
-//                    LOG_ERROR("error removing file: " << old_address_file);
-//                }
-//            }
-//            // remove old keys file
-//            r = boost::filesystem::remove(old_keys_file);
-//            if (!r) {
-//                LOG_ERROR("error removing file: " << old_keys_file);
-//            }
-//            // remove old message store file
-//            if (boost::filesystem::exists(old_mms_file))
-//            {
-//                r = boost::filesystem::remove(old_mms_file);
-//                if (!r) {
-//                    LOG_ERROR("error removing file: " << old_mms_file);
-//                }
-//            }
-//        }
-//
-//        // Save cache to new file. If storing to the same file, the temp path has the ".new" extension
-//#ifdef WIN32
-//        // On Windows avoid using std::ofstream which does not work with UTF-8 filenames
-//        // The price to pay is temporary higher memory consumption for string stream + binary archive
-//        std::ostringstream oss;
-//        binary_archive<true> oar(oss);
-//        bool success = ::serialization::serialize(oar, cache_file_data.get());
-//        if (success) {
-//            success = save_to_file(new_file, oss.str());
-//        }
-//        THROW_WALLET_EXCEPTION_IF(!success, error::file_save_error, new_file);
-//#else
-//        std::ofstream ostr;
-//        ostr.open(new_file, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-//        binary_archive<true> oar(ostr);
-//        bool success = ::serialization::serialize(oar, cache_file_data.get());
-//        ostr.close();
-//        THROW_WALLET_EXCEPTION_IF(!success || !ostr.good(), error::file_save_error, new_file);
-//#endif
-//
-//        if (same_file)
-//        {
-//            // here we have "*.new" file, we need to rename it to be without ".new"
-//            std::error_code e = tools::replace_file(new_file, m_wallet_file);
-//            THROW_WALLET_EXCEPTION_IF(e, error::file_save_error, m_wallet_file, e);
-//        }
-//        else if (!same_file && had_old_wallet_files)
-//        {
-//            // remove old wallet file
-//            bool r = boost::filesystem::remove(old_file);
-//            if (!r) {
-//                LOG_ERROR("error removing file: " << old_file);
-//            }
-//        }
-//
-//        if (m_message_store.get_active())
-//        {
-//            // While the "m_message_store" object of course always exist, a file for the message
-//            // store should only exist if the MMS is really active
-//            m_message_store.write_to_file(get_multisig_wallet_state(), m_mms_file);
-//        }
+        boost::optional<WalletSettings::cache_file_data> cache_file_data = get_cache_file_data();
+        THROW_WALLET_EXCEPTION_IF(cache_file_data == boost::none, tools::error::wallet_internal_error, "failed to generate wallet cache data");
+
+        const std::string new_file = same_file ? m_wallet_settings->m_wallet_file + ".new" : path;
+        const std::string old_file = m_wallet_settings->m_wallet_file;
+        const std::string old_keys_file = m_wallet_settings->m_keys_file;
+        const std::string old_address_file = m_wallet_settings->m_wallet_file + ".address.txt";
+        const std::string old_mms_file = m_wallet_settings->m_mms_file;
+
+        if (!same_file)
+            m_wallet_settings->prepare_file_names(path);
+
+        if (!same_file || force_rewrite_keys)
+        {
+            bool r = m_wallet_keys->store_keys(m_wallet_settings->m_keys_file, password, m_wallet_settings->m_watch_only, m_account, m_wallet_settings);
+            THROW_WALLET_EXCEPTION_IF(!r, tools::error::file_save_error, m_wallet_settings->m_keys_file);
+        }
+
+        if (!same_file && had_old_wallet_files)
+        {
+            bool r = false;
+            if (boost::filesystem::exists(old_address_file))
+            {
+                // save address to the new file
+                const std::string address_file = m_wallet_settings->m_wallet_file + ".address.txt";
+                r = Utils::save_to_file(address_file, m_account.get_public_address_str(static_cast<cryptonote::network_type>(m_wallet_settings->m_nettype)), true);
+                THROW_WALLET_EXCEPTION_IF(!r, tools::error::file_save_error, m_wallet_settings->m_wallet_file);
+                // remove old address file
+                r = boost::filesystem::remove(old_address_file);
+                if (!r) {
+                    LOG_ERROR("error removing file: " << old_address_file);
+                }
+            }
+            // remove old keys file
+            r = boost::filesystem::remove(old_keys_file);
+            if (!r) {
+                LOG_ERROR("error removing file: " << old_keys_file);
+            }
+            // remove old message store file
+            if (boost::filesystem::exists(old_mms_file))
+            {
+                r = boost::filesystem::remove(old_mms_file);
+                if (!r) {
+                    LOG_ERROR("error removing file: " << old_mms_file);
+                }
+            }
+        }
+
+        // Save cache to new file. If storing to the same file, the temp path has the ".new" extension
+#ifdef WIN32
+        // On Windows avoid using std::ofstream which does not work with UTF-8 filenames
+        // The price to pay is temporary higher memory consumption for string stream + binary archive
+        std::ostringstream oss;
+        binary_archive<true> oar(oss);
+        bool success = ::serialization::serialize(oar, cache_file_data.get());
+        if (success) {
+            success = Utils::save_to_file(new_file, oss.str());
+        }
+        THROW_WALLET_EXCEPTION_IF(!success, tools::error::file_save_error, new_file);
+#else
+        std::ofstream ostr;
+        ostr.open(new_file, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+        binary_archive<true> oar(ostr);
+        bool success = ::serialization::serialize(oar, cache_file_data.get());
+        ostr.close();
+        THROW_WALLET_EXCEPTION_IF(!success || !ostr.good(), tools::error::file_save_error, new_file);
+#endif
+
+        if (same_file)
+        {
+            // here we have "*.new" file, we need to rename it to be without ".new"
+            std::error_code e = tools::replace_file(new_file, m_wallet_settings->m_wallet_file);
+            THROW_WALLET_EXCEPTION_IF(e, tools::error::file_save_error, m_wallet_settings->m_wallet_file, e);
+        }
+        else if (!same_file && had_old_wallet_files)
+        {
+            // remove old wallet file
+            bool r = boost::filesystem::remove(old_file);
+            if (!r) {
+                LOG_ERROR("error removing file: " << old_file);
+            }
+        }
+
+        if (m_wallet_settings->m_message_store.get_active())
+        {
+            // While the "m_message_store" object of course always exist, a file for the message
+            // store should only exist if the MMS is really active
+            m_wallet_settings->m_message_store.write_to_file(m_wallet_settings->get_multisig_wallet_state(m_account), m_wallet_settings->m_mms_file);
+        }
 
     } catch (const std::exception &e) {
         LOG_ERROR("Error saving wallet: " << e.what());
@@ -1304,7 +1302,7 @@ bool WalletImpl::exportOutputs(const string &filename, bool all)
     try
     {
         std::string data = m_wallet->export_outputs_to_str(all);
-        bool r = m_wallet->save_to_file(filename, data);
+        bool r = Utils::save_to_file(filename, data);
         if (!r)
         {
             LOG_ERROR("Failed to save file " << filename);
@@ -1437,9 +1435,9 @@ void WalletImpl::setSubaddressLabel(uint32_t accountIndex, uint32_t addressIndex
     }
 }
 
-MultisigState WalletImpl::multisig() const {
+MultisigState WalletImpl::multisig() {
     MultisigState state;
-    state.isMultisig = m_wallet->multisig(&state.isReady, &state.threshold, &state.total);
+    state.isMultisig = m_wallet_settings->multisig(m_account, &state.isReady, &state.threshold, &state.total);
 
     return state;
 }
@@ -2752,7 +2750,7 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
 
     crypto::secret_key retval = m_account.generate(recovery_param, recover, two_random);
 
-    m_wallet_settings->init_type(hw::device::device_type::SOFTWARE, m_account, m_account_public_address);
+    m_wallet_settings->init_type(hw::device::device_type::SOFTWARE, m_account);
     m_wallet_keys->setup_keys(password, m_wallet_settings, m_account);
 
     // calculate a starting refresh height
@@ -2770,5 +2768,32 @@ crypto::secret_key WalletImpl::generate(const std::string& wallet_, const epee::
 
     return retval;
 }
+
+boost::optional<WalletSettings::cache_file_data> WalletImpl::get_cache_file_data()
+{
+    // TODO
+//    trim_hashchain();
+    try
+    {
+        std::stringstream oss;
+        binary_archive<true> ar(oss);
+        if (!::serialization::serialize(ar, *m_wallet_settings.get()))
+            return boost::none;
+
+        boost::optional<WalletSettings::cache_file_data> cache_file_data = (WalletSettings::cache_file_data) {};
+        cache_file_data.get().cache_data = oss.str();
+        std::string cipher;
+        cipher.resize(cache_file_data.get().cache_data.size());
+        cache_file_data.get().iv = crypto::rand<crypto::chacha_iv>();
+        crypto::chacha20(cache_file_data.get().cache_data.data(), cache_file_data.get().cache_data.size(), m_wallet_keys->m_cache_key, cache_file_data.get().iv, &cipher[0]);
+        cache_file_data.get().cache_data = cipher;
+        return cache_file_data;
+    }
+    catch(...)
+    {
+        return boost::none;
+    }
+}
+
 
 } // namespace
