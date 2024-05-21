@@ -386,11 +386,20 @@ void extract_legacy_enote_ephemeral_pubkeys_from_tx_extra(const TxExtra &tx_extr
     cryptonote::tx_extra_pub_key pub_key_field;
 
     size_t pk_index = 0;
-    legacy_main_enote_ephemeral_pubkeys_out = rct::keyV{};
     while (cryptonote::find_tx_extra_field_by_type(tx_extra_fields, pub_key_field, pk_index++))
+    {
+        if (pk_index == 1) // first iteration
+        {
+            legacy_main_enote_ephemeral_pubkeys_out = rct::pk2rct(pub_key_field.pub_key);
+            continue;
+        }
+        else if (pk_index == 2) // second iteration
+            legacy_main_enote_ephemeral_pubkeys_out = rct::keyV{legacy_main_enote_ephemeral_pubkeys_out.unwrap<rct::key>()};
         legacy_main_enote_ephemeral_pubkeys_out.unwrap<rct::keyV>().push_back(rct::pk2rct(pub_key_field.pub_key));
+    }
 
-    if (legacy_main_enote_ephemeral_pubkeys_out.unwrap<rct::keyV>().empty())
+    if (legacy_main_enote_ephemeral_pubkeys_out.is_type<rct::key>() &&
+            legacy_main_enote_ephemeral_pubkeys_out.unwrap<rct::key>() == rct::key{})
         legacy_main_enote_ephemeral_pubkeys_out = rct::I;
 
     // 3. try to get 'additional' enote ephemeral pubkeys (one per output): r_t K^v_t

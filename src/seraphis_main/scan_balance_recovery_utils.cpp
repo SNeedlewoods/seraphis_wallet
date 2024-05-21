@@ -354,6 +354,30 @@ static std::unordered_set<rct::key> process_chunk_sp_selfsend_pass(
 }
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
+static rct::key& key_by_index_ref(rct::key_keyV_variant &variant, size_t index)
+{
+    struct visitor final : public tools::variant_static_visitor<rct::key&>
+    {
+        visitor(size_t index) : id{index} {}
+        size_t id;
+
+        using variant_static_visitor::operator();  //for blank overload
+        rct::key& operator()(rct::key &key_variant) const
+        {
+            CHECK_AND_ASSERT_THROW_MES(id == 0, "invalid index for rct::key.");
+            return key_variant;
+        }
+        rct::key& operator()(rct::keyV &key_variant) const
+        {
+            CHECK_AND_ASSERT_THROW_MES(id < key_variant.size(), "index greater than vector size.");
+            return key_variant[id];
+        }
+    };
+
+    return variant.visit(visitor{index});
+}
+//-------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------------------
 bool try_find_legacy_enotes_in_tx(const rct::key &legacy_base_spend_pubkey,
     const std::unordered_map<rct::key, cryptonote::subaddress_index> &legacy_subaddress_map,
     const crypto::secret_key &legacy_view_privkey,
@@ -422,19 +446,21 @@ bool try_find_legacy_enotes_in_tx(const rct::key &legacy_base_spend_pubkey,
 
     // 3. check if there is a main enote ephemeral pubkey
     if (legacy_main_enote_ephemeral_pubkeys.is_type<rct::key>() &&
-            legacy_main_enote_ephemeral_pubkeys.unwrap<rct::key>() == rct::rct2pk(rct::I))
+            legacy_main_enote_ephemeral_pubkeys.unwrap<rct::key>() == rct::I)
         return found_an_enote;
 
     // 4. compute the key derivations for all main enote ephemeral pubkeys
     rct::key_keyV_variant temp_DH_derivations = rct::key{};
-    if (legacy_main_enote_ephemeral_pubkeys.is_type<rct::keyV>())
+    const auto pubkeys = legacy_main_enote_ephemeral_pubkeys.try_unwrap<rct::keyV>();
+    if (pubkeys)
     {
-        temp_DH_derivations = rct::keyV{};
-        temp_DH_derivations.unwrap<rct::keyV>().reserve(legacy_main_enote_ephemeral_pubkeys.unwrap<rct::keyV>().size());
-        for (rct::key enote_ephemeral_pubkey : legacy_main_enote_ephemeral_pubkeys.unwrap<rct::keyV>()) {
+        rct::keyV temp{};
+        temp.reserve(pubkeys->size());
+        for (const rct::key &enote_ephemeral_pubkey : *pubkeys) {
             hwdev.generate_key_derivation(rct::rct2pk(enote_ephemeral_pubkey), legacy_view_privkey, temp_DH_derivation);
-            temp_DH_derivations.unwrap<rct::keyV>().emplace_back((rct::key &) temp_DH_derivation);
+            temp.emplace_back((rct::key &) temp_DH_derivation);
         }
+        temp_DH_derivations = temp;
     }
     else
     {
@@ -451,12 +477,8 @@ bool try_find_legacy_enotes_in_tx(const rct::key &legacy_base_spend_pubkey,
                 (temp_DH_derivations.is_type<rct::key>() && pk_index < 1);
                 ++pk_index)
         {
-            crypto::public_key temp_legacy_main_enote_ephemeral_pubkey = legacy_main_enote_ephemeral_pubkeys.is_type<rct::key>() ?
-                        rct::rct2pk(legacy_main_enote_ephemeral_pubkeys.unwrap<rct::key>()) :
-                        rct::rct2pk(legacy_main_enote_ephemeral_pubkeys.unwrap<rct::keyV>()[pk_index]);
-            temp_DH_derivation = temp_DH_derivations.is_type<rct::key>() ?
-                        (crypto::key_derivation &) (temp_DH_derivations.unwrap<rct::key>()) :
-                        (crypto::key_derivation &) (temp_DH_derivations.unwrap<rct::keyV>()[pk_index]);
+            crypto::public_key temp_legacy_main_enote_ephemeral_pubkey = rct2pk(key_by_index_ref(legacy_main_enote_ephemeral_pubkeys, pk_index));
+            temp_DH_derivation = (crypto::key_derivation &) key_by_index_ref(temp_DH_derivations, pk_index);
             // a. try to recover a contextual basic record from the enote
             if (!try_view_scan_legacy_enote_v1(legacy_base_spend_pubkey,
                     legacy_subaddress_map,
