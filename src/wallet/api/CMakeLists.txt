@@ -69,6 +69,7 @@ target_link_libraries(wallet_api
     common
     cryptonote_core
     mnemonics
+    ${EPEE_READLINE}
     ${LMDB_LIBRARY}
     ${Boost_CHRONO_LIBRARY}
     ${Boost_LOCALE_LIBRARY}
