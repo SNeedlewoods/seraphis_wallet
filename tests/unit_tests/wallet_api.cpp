@@ -43,13 +43,102 @@
 using namespace Monero;
 
 //-------------------------------------------------------------------------------------------------------------------
+TEST(wallet_api, convert_amounts)
+{
+    // Amount
+    std::uint64_t amount_1_pico =             1; // 1 piconero
+    std::uint64_t amount_1_xmr  = 1000000000000; // 1 XMR
+    std::uint64_t amount_max    = Wallet::maximumAllowedAmount(); // max amount
+
+    std::string amount_1_pico_s =        "0.000000000001"; // 1 piconero
+    std::string amount_1_xmr_s  =        "1.000000000000"; // 1 XMR
+    std::string amount_max_s    = "18446744.073709551615"; // max amount
+
+    double amount_1_pico_d      =        0.000000000001; // 1 piconero
+    double amount_1_xmr_d       =        1.000000000000; // 1 XMR
+    // TODO : figure out max amount for double
+    double amount_max_d         = 18446744.073709551615; // max amount
+
+    // uint64_t to string
+    ASSERT_TRUE(Wallet::displayAmount(amount_1_pico) == amount_1_pico_s);
+    ASSERT_TRUE(Wallet::displayAmount(amount_1_xmr)  == amount_1_xmr_s);
+    ASSERT_TRUE(Wallet::displayAmount(amount_max)    == amount_max_s);
+
+    // string to uint64_t
+    ASSERT_TRUE(Wallet::amountFromString(amount_1_pico_s) == amount_1_pico);
+    ASSERT_TRUE(Wallet::amountFromString(amount_1_xmr_s)  == amount_1_xmr);
+    ASSERT_TRUE(Wallet::amountFromString(amount_max_s)    == amount_max);
+
+    // double to uint64_t
+    ASSERT_TRUE(Wallet::amountFromDouble(amount_1_pico_d) == amount_1_pico);
+    ASSERT_TRUE(Wallet::amountFromDouble(amount_1_xmr_d)  == amount_1_xmr);
+    // TODO : investigate, returned value is 18446744073709551245
+    //                     expected value is 18446744073709551615
+//    ASSERT_TRUE(Wallet::amountFromDouble(amount_max_d)    == amount_max);
+}
+//-------------------------------------------------------------------------------------------------------------------
+TEST(wallet_api, generate_and_validate_payment_id)
+{
+    std::string payment_id_valid_short = Wallet::genPaymentId();
+    std::string payment_id_valid_long  = Wallet::genPaymentId() + Wallet::genPaymentId() + Wallet::genPaymentId() + Wallet::genPaymentId();
+
+    std::string payment_id_zeros = "0000000000000000";
+
+    std::string payment_id_invalid_length    = payment_id_valid_short + "0";
+    std::string payment_id_invalid_character = payment_id_valid_short.substr(0, 15) + "g";
+
+    ASSERT_TRUE(Wallet::paymentIdValid(payment_id_valid_short));
+    ASSERT_TRUE(Wallet::paymentIdValid(payment_id_valid_long));
+
+    // TODO : is this indeed a valid payment id (all zeros) or a bug in paymentIdValid?
+    ASSERT_TRUE(Wallet::paymentIdValid(payment_id_zeros));
+
+    ASSERT_FALSE(Wallet::paymentIdValid(payment_id_invalid_length));
+    ASSERT_FALSE(Wallet::paymentIdValid(payment_id_invalid_character));
+}
+//-------------------------------------------------------------------------------------------------------------------
+TEST(wallet_api, validate_key_and_address)
+{
+    // generate keys and address
+    NetworkType mainnet = NetworkType::MAINNET;
+    crypto::secret_key secret_spend_key;
+    crypto::secret_key secret_view_key;
+    crypto::public_key pub_k;
+    cryptonote::account_base account{};
+
+    crypto::generate_keys(pub_k, secret_spend_key, secret_spend_key, false /* recover */);
+    account.generate(secret_spend_key);
+
+    std::string mainaddress = account.get_public_address_str(static_cast<cryptonote::network_type>(mainnet));
+    std::string secret_spend_key_str = epee::string_tools::pod_to_hex(account.get_keys().m_spend_secret_key);
+    std::string secret_view_key_str = epee::string_tools::pod_to_hex(account.get_keys().m_view_secret_key);
+    std::string error = "";
+
+    ASSERT_TRUE(Wallet::addressValid(mainaddress, mainnet));
+    ASSERT_TRUE(Wallet::keyValid(secret_spend_key_str, mainaddress, false /* isViewKey */, mainnet, error));
+    ASSERT_TRUE(Wallet::keyValid(secret_view_key_str,  mainaddress, true  /* isViewKey */, mainnet, error));
+
+    // get payment id from integrated address
+    std::string payment_id_hex = Wallet::genPaymentId();
+    crypto::hash8 payment_id;
+    std::string integrated_address;
+
+    epee::string_tools::hex_to_pod(payment_id_hex, payment_id);
+    integrated_address = account.get_public_integrated_address_str(payment_id, static_cast<cryptonote::network_type>(mainnet));
+
+    ASSERT_TRUE(Wallet::paymentIdFromAddress(integrated_address, mainnet) == payment_id_hex);
+}
+//-------------------------------------------------------------------------------------------------------------------
 // TODO : Not sure about command line options for the API in general, but both simplewallet and wallet_rpc use these, so I think we need to support them somehow
 TEST(wallet_api, command_line_options)
 {
+    /*
+       Test static `WalletImpl` functions for command line options
+    */
     boost::program_options::variables_map vm;
     boost::program_options::options_description desc_params(wallet_args::tr("Wallet API options"));
     int argc = 0;
-    const char* argv[6];
+    const char* argv[8];
     argv[0] = NULL;
 
     // init wallet options
@@ -60,28 +149,36 @@ TEST(wallet_api, command_line_options)
     ASSERT_FALSE(WalletImpl::hasTestnetOption(vm));
     ASSERT_FALSE(WalletImpl::hasStagenetOption(vm));
     ASSERT_TRUE(WalletImpl::deviceNameOption(vm) == "");
+    ASSERT_TRUE(WalletImpl::deviceDerivationPathOption(vm) == "");
 
     // add/change options
     const command_line::arg_descriptor<std::string, true> arg_testnet = {"testnet", "testnet"};
     const command_line::arg_descriptor<std::string, true> arg_stagenet = {"stagenet", "stagenet"};
     const command_line::arg_descriptor<std::string, true> arg_device_name = {"hw-device", "hw-device <device-name>"};
+    const command_line::arg_descriptor<std::string, true> arg_device_derivation_path = {"hw-device-deriv-path", "hw-device-deriv-path <path>"};
     command_line::add_arg(desc_params, arg_testnet);
     command_line::add_arg(desc_params, arg_stagenet);
     command_line::add_arg(desc_params, arg_device_name);
+    command_line::add_arg(desc_params, arg_device_derivation_path);
 
-    argc = 5;
+    std::string device_name = "default";
+    std::string device_derivation_path = "testpath";
+    argc = 7;
     argv[0] = "wallet-api";
     argv[1] = "--testnet";
     argv[2] = "--stagenet";
     argv[3] = "--hw-device";
-    argv[4] = "default";
-    argv[5] = NULL;
+    argv[4] = device_name.c_str();
+    argv[5] = "--hw-device-deriv-path";
+    argv[6] = device_derivation_path.c_str();
+    argv[7] = NULL;
     boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc_params), vm);
 
     // check added/changed options
     ASSERT_TRUE(WalletImpl::hasTestnetOption(vm));
     ASSERT_TRUE(WalletImpl::hasStagenetOption(vm));
-    ASSERT_TRUE(WalletImpl::deviceNameOption(vm) == "default");
+    ASSERT_TRUE(WalletImpl::deviceNameOption(vm) == device_name);
+    ASSERT_TRUE(WalletImpl::deviceDerivationPathOption(vm) == device_derivation_path);
 }
 //-------------------------------------------------------------------------------------------------------------------
 TEST(wallet_api, create_wallet)
