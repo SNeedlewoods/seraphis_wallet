@@ -266,6 +266,7 @@ Wallet::~Wallet() {}
 WalletListener::~WalletListener() {}
 
 
+// Static Wallet Functions
 string Wallet::displayAmount(uint64_t amount)
 {
     return cryptonote::print_money(amount);
@@ -292,57 +293,61 @@ std::string Wallet::genPaymentId()
 
 }
 
-bool Wallet::paymentIdValid(const string &paiment_id)
+bool Wallet::paymentIdValid(const string &payment_id)
 {
     crypto::hash8 pid8;
-    if (tools::wallet2::parse_short_payment_id(paiment_id, pid8))
+    if (tools::wallet2::parse_short_payment_id(payment_id, pid8))
         return true;
     crypto::hash pid;
-    if (tools::wallet2::parse_long_payment_id(paiment_id, pid))
+    if (tools::wallet2::parse_long_payment_id(payment_id, pid))
         return true;
     return false;
 }
 
 bool Wallet::addressValid(const std::string &str, NetworkType nettype)
 {
-  cryptonote::address_parse_info info;
-  return get_account_address_from_str(info, static_cast<cryptonote::network_type>(nettype), str);
+    cryptonote::address_parse_info info;
+    return get_account_address_from_str(info, static_cast<cryptonote::network_type>(nettype), str);
 }
 
 bool Wallet::keyValid(const std::string &secret_key_string, const std::string &address_string, bool isViewKey, NetworkType nettype, std::string &error)
 {
-  cryptonote::address_parse_info info;
-  if(!get_account_address_from_str(info, static_cast<cryptonote::network_type>(nettype), address_string)) {
-      error = tr("Failed to parse address");
-      return false;
-  }
-  
-  cryptonote::blobdata key_data;
-  if(!epee::string_tools::parse_hexstr_to_binbuff(secret_key_string, key_data) || key_data.size() != sizeof(crypto::secret_key))
-  {
-      error = tr("Failed to parse key");
-      return false;
-  }
-  crypto::secret_key key = *reinterpret_cast<const crypto::secret_key*>(key_data.data());
+    // TODO : shouldn't we set `error = "";`
+    cryptonote::address_parse_info info;
+    if(!get_account_address_from_str(info, static_cast<cryptonote::network_type>(nettype), address_string))
+    {
+        error = tr("Failed to parse address");
+        return false;
+    }
 
-  // check the key match the given address
-  crypto::public_key pkey;
-  if (!crypto::secret_key_to_public_key(key, pkey)) {
-      error = tr("failed to verify key");
-      return false;
-  }
-  bool matchAddress = false;
-  if(isViewKey)
-      matchAddress = info.address.m_view_public_key == pkey;
-  else
-      matchAddress = info.address.m_spend_public_key == pkey;
+    cryptonote::blobdata key_data;
+    if(!epee::string_tools::parse_hexstr_to_binbuff(secret_key_string, key_data) || key_data.size() != sizeof(crypto::secret_key))
+    {
+        error = tr("Failed to parse key");
+        return false;
+    }
+    crypto::secret_key key = *reinterpret_cast<const crypto::secret_key*>(key_data.data());
 
-  if(!matchAddress) {
-      error = tr("key does not match address");
-      return false;
-  }
-  
-  return true;
+    // check the key match the given address
+    crypto::public_key pkey;
+    if (!crypto::secret_key_to_public_key(key, pkey))
+    {
+        error = tr("failed to verify key");
+        return false;
+    }
+    bool matchAddress = false;
+    if(isViewKey)
+        matchAddress = info.address.m_view_public_key == pkey;
+    else
+        matchAddress = info.address.m_spend_public_key == pkey;
+
+    if(!matchAddress)
+    {
+        error = tr("key does not match address");
+        return false;
+    }
+
+    return true;
 }
 
 std::string Wallet::paymentIdFromAddress(const std::string &str, NetworkType nettype)

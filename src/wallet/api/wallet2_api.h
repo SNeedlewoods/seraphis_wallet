@@ -1351,29 +1351,80 @@ struct Wallet
     virtual bool verifyMessageWithPublicKey(const std::string &message, const std::string &publicKey, const std::string &signature) const = 0;
 
 
-    // TODO NEXT : CONTINUE HERE
     // Static
+    // TODO : consider to add function to change unit or decimal point like `simple_wallet::set_unit()`
+    /**
+    * brief: displayAmount - convert from atomic units (piconero) to monero
+    * param: amount - in atomic units
+    * return: amount with decimal point
+    */
     static std::string displayAmount(uint64_t amount);
+    /**
+    * brief: amountFromString - convert from monero (with decimal point) to atomic units (piconero)
+    * param: amount - in monero (with decimal point)
+    * return: amount in atomic units
+    */
     static uint64_t amountFromString(const std::string &amount);
+    /**
+    * brief: amountFromDouble - convert from monero (with decimal point) to atomic units (piconero)
+    * param: amount - in monero (with decimal point)
+    * return: amount in atomic units
+    */
     static uint64_t amountFromDouble(double amount);
+    /**
+    * brief: genPaymentId - generate a random payment id
+    * return: payment id as 16 character hex string
+    */
     static std::string genPaymentId();
-    static bool paymentIdValid(const std::string &paiment_id);
+    /**
+    * brief: paymentIdValid - check if given payment id is valid
+    * param: payment_id - either short (16 char hex) or long (64 char hex, DEPRECATED)
+    * return: true if payment_id is valid
+    */
+    static bool paymentIdValid(const std::string &payment_id);
+    /**
+    * brief: addressValid - check if given address is valid
+    * param: str     - address
+    * param: nettype -
+    * return: true if address is valid and belongs to given nettype
+    */
     static bool addressValid(const std::string &str, NetworkType nettype);
     static bool addressValid(const std::string &str, bool testnet)          // deprecated
     {
         return addressValid(str, testnet ? TESTNET : MAINNET);
     }
+    /**
+    * brief: keyValid - check if given secret key belongs to given address address
+    * param: secret_key_string -
+    * param: address_string    -
+    * param: isViewKey         - check address public view key match if true, else check spend key
+    * param: nettype           -
+    * outparam: error          - error message if error occurred
+    * return: true if secret key
+    */
     static bool keyValid(const std::string &secret_key_string, const std::string &address_string, bool isViewKey, NetworkType nettype, std::string &error);
     static bool keyValid(const std::string &secret_key_string, const std::string &address_string, bool isViewKey, bool testnet, std::string &error)     // deprecated
     {
         return keyValid(secret_key_string, address_string, isViewKey, testnet ? TESTNET : MAINNET, error);
     }
+    /**
+    * brief: paymentIdFromAddress - get payment id from address
+    * param: str - address
+    * param: nettype -
+    * return: payment id if address contains one, else empty string
+    */
     static std::string paymentIdFromAddress(const std::string &str, NetworkType nettype);
     static std::string paymentIdFromAddress(const std::string &str, bool testnet)       // deprecated
     {
         return paymentIdFromAddress(str, testnet ? TESTNET : MAINNET);
     }
+    /**
+    * brief: maximumAllowedAmount -
+    * return: max numeric limit for uint64_t
+    */
     static uint64_t maximumAllowedAmount();
+
+
     // Easylogger wrapper
     static void init(const char *argv0, const char *default_log_base_name) { init(argv0, default_log_base_name, "", true); }
     static void init(const char *argv0, const char *default_log_base_name, const std::string &log_path, bool console);
