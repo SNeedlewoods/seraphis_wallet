@@ -130,8 +130,24 @@ public:
     { return tools::wallet2::make_new(vm, unattended, password_prompter); }
 
     // TODO : also not sure about these functions, because they're already available in wallet_manager
-    //static bool verify_password(const std::string& keys_file_name, const epee::wipeable_string& password, bool no_spend_key, hw::device &hwdev, uint64_t kdf_rounds);
-    //static bool query_device(hw::device::device_type& device_type, const std::string& keys_file_name, const epee::wipeable_string& password, uint64_t kdf_rounds = 1);
+//    static bool verify_password(const std::string& keys_file_name, const epee::wipeable_string& password, bool no_spend_key, hw::device &hwdev, uint64_t kdf_rounds);
+//    static bool query_device(hw::device::device_type& device_type, const std::string& keys_file_name, const epee::wipeable_string& password, uint64_t kdf_rounds = 1);
+//    static void wallet_exists(const std::string& file_path, bool& keys_file_exists, bool& wallet_file_exists);
+
+    // TODO : this function is not available from any API class/struct, but imo in it's current form it's kinda useless, because it only checks if file_path is empty
+    //        could be useful though if it would check for actual validity. would belong either here or in WalletManagerImpl
+//    static bool wallet_valid_path_format(const std::string& file_path);
+
+    static bool parseLongPaymentId(const std::string &payment_id_str, crypto::hash &payment_id) { return tools::wallet2::parse_long_payment_id(payment_id_str, payment_id); }
+    static bool parseShortPaymentId(const std::string &payment_id_str, crypto::hash8 &payment_id) { return tools::wallet2::parse_short_payment_id(payment_id_str, payment_id); }
+    // TODO : I think the two functions above should suffice
+//    static bool parsePaymentId(const std::string &payment_id_str, crypto::hash &payment_id);
+
+    // TODO : in simplewallet this gets called like `m_wallet->load_from_file()` instead I expected `tools::wallet2::load_from_file()` because it's a static function
+    static bool loadFromFile(const std::string &path_to_file, std::string &target_str, size_t max_size = 1000000000)
+    { return tools::wallet2::load_from_file(path_to_file, target_str, max_size); }
+
+
 
     // Overrides
     std::string seed(const std::string &seed_offset = "") const override;
@@ -159,6 +175,7 @@ public:
     std::string filename() const override;
     std::string keysFilename() const override;
     bool init(const std::string &daemon_address, uint64_t upper_transaction_size_limit = 0, const std::string &daemon_username = "", const std::string &daemon_password = "", bool use_ssl = false, bool lightWallet = false, const std::string &proxy_address = "") override;
+    bool create(const std::string &path, const std::string &password, const std::string &language) override;
     bool createWatchOnly(const std::string &path, const std::string &password, const std::string &language) const override;
     void setRefreshFromBlockHeight(uint64_t refresh_from_block_height) override;
     void setRecoveringFromSeed(bool recoveringFromSeed) override;
@@ -270,8 +287,6 @@ public:
 
     // TODO : CONTINUE HERE
     // Non-override
-    bool create(const std::string &path, const std::string &password,
-                const std::string &language);
     bool open(const std::string &path, const std::string &password);
     bool recover(const std::string &path,const std::string &password,
                             const std::string &seed, const std::string &seed_offset = {});

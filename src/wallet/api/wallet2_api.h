@@ -620,8 +620,19 @@ struct Wallet
     * return: true if succeeded
     */
     virtual bool init(const std::string &daemon_address, uint64_t upper_transaction_size_limit = 0, const std::string &daemon_username = "", const std::string &daemon_password = "", bool use_ssl = false, bool lightWallet = false, const std::string &proxy_address = "") = 0;
+    // TODO NEXT : look into createMultisig and createNonDeterministic
+    //              though I think createWalletFromKeys in WalletManager can do both, non-deterministic and watch-only
     /**
-    * brief: createWatchOnly - create new watch only wallet
+    * brief: create   - create new wallet
+    * param: path     - path ending in wallet_file name
+    * param: password - wallet password
+    * param: language - mnemonic seed language
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
+    virtual bool create(const std::string &path, const std::string &password, const std::string &language) = 0;
+    /**
+    * brief: createWatchOnly - create new watch only wallet from current wallet's view key
     * param: path     - path ending in wallet_file name
     * param: password - wallet password
     * param: language - mnemonic seed language
@@ -1362,13 +1373,13 @@ struct Wallet
     /**
     * brief: amountFromString - convert from monero (with decimal point) to atomic units (piconero)
     * param: amount - in monero (with decimal point)
-    * return: amount in atomic units
+    * return: amount in atomic units, 0 on error
     */
     static uint64_t amountFromString(const std::string &amount);
     /**
     * brief: amountFromDouble - convert from monero (with decimal point) to atomic units (piconero)
     * param: amount - in monero (with decimal point)
-    * return: amount in atomic units
+    * return: amount in atomic units, 0 on error
     */
     static uint64_t amountFromDouble(double amount);
     /**

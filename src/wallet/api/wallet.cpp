@@ -296,10 +296,10 @@ std::string Wallet::genPaymentId()
 bool Wallet::paymentIdValid(const string &payment_id)
 {
     crypto::hash8 pid8;
-    if (tools::wallet2::parse_short_payment_id(payment_id, pid8))
+    if (WalletImpl::parseShortPaymentId(payment_id, pid8))
         return true;
     crypto::hash pid;
-    if (tools::wallet2::parse_long_payment_id(payment_id, pid))
+    if (WalletImpl::parseLongPaymentId(payment_id, pid))
         return true;
     return false;
 }
@@ -541,7 +541,7 @@ bool WalletImpl::useForkRules(uint8_t version, int64_t early_blocks) const
 std::string WalletImpl::integratedAddress(const std::string &payment_id) const
 {
     crypto::hash8 pid;
-    if (!tools::wallet2::parse_short_payment_id(payment_id, pid)) {
+    if (!WalletImpl::parseShortPaymentId(payment_id, pid)) {
         return "";
     }
     return m_wallet->get_integrated_address_as_str(pid);
@@ -616,6 +616,43 @@ bool WalletImpl::init(const std::string &daemon_address, uint64_t upper_transact
     if(daemon_username != "")
         m_daemon_login.emplace(daemon_username, daemon_password);
     return doInit(daemon_address, proxy_address, upper_transaction_size_limit, use_ssl);
+}
+
+bool WalletImpl::create(const std::string &path, const std::string &password, const std::string &language)
+{
+
+    clearStatus();
+    m_recoveringFromSeed = false;
+    m_recoveringFromDevice = false;
+    bool keys_file_exists;
+    bool wallet_file_exists;
+    tools::wallet2::wallet_exists(path, keys_file_exists, wallet_file_exists);
+    LOG_PRINT_L3("wallet_path: " << path << "");
+    LOG_PRINT_L3("keys_file_exists: " << std::boolalpha << keys_file_exists << std::noboolalpha
+                 << "  wallet_file_exists: " << std::boolalpha << wallet_file_exists << std::noboolalpha);
+
+
+    // add logic to error out if new wallet requested but named wallet file exists
+    if (keys_file_exists || wallet_file_exists) {
+        std::string error = "attempting to generate or restore wallet, but specified file(s) exist.  Exiting to not risk overwriting.";
+        LOG_ERROR(error);
+        setStatusCritical(error);
+        return false;
+    }
+    // TODO: validate language
+    m_wallet->set_seed_language(language);
+    crypto::secret_key recovery_val, secret_key;
+    try {
+        recovery_val = m_wallet->generate(path, password, secret_key, false, false);
+        m_password = password;
+        clearStatus();
+    } catch (const std::exception &e) {
+        LOG_ERROR("Error creating wallet: " << e.what());
+        setStatusCritical(e.what());
+        return false;
+    }
+
+    return true;
 }
 
 bool WalletImpl::createWatchOnly(const std::string &path, const std::string &password, const std::string &language) const
@@ -981,7 +1018,7 @@ PendingTransaction * WalletImpl::createTransactionMultDest(const std::vector<str
         }
         if (!payment_id.empty()) {
             crypto::hash payment_id_long;
-            if (tools::wallet2::parse_long_payment_id(payment_id, payment_id_long)) {
+            if (WalletImpl::parseLongPaymentId(payment_id, payment_id_long)) {
                 cryptonote::set_payment_id_to_tx_extra_nonce(extra_nonce, payment_id_long);
             } else {
                 setStatusError(tr("payment id has invalid format, expected 64 character hex string: ") + payment_id);
@@ -2041,7 +2078,7 @@ void WalletImpl::deviceShowAddress(uint32_t accountIndex, uint32_t addressIndex,
     if (!paymentId.empty())
     {
         crypto::hash8 payment_id;
-        bool res = tools::wallet2::parse_short_payment_id(paymentId, payment_id);
+        bool res = WalletImpl::parseShortPaymentId(paymentId, payment_id);
         if (!res)
         {
             throw runtime_error("Invalid payment ID");
@@ -2269,43 +2306,6 @@ bool WalletImpl::verifyMessageWithPublicKey(const std::string &message, const st
 }
 
 
-
-bool WalletImpl::create(const std::string &path, const std::string &password, const std::string &language)
-{
-
-    clearStatus();
-    m_recoveringFromSeed = false;
-    m_recoveringFromDevice = false;
-    bool keys_file_exists;
-    bool wallet_file_exists;
-    tools::wallet2::wallet_exists(path, keys_file_exists, wallet_file_exists);
-    LOG_PRINT_L3("wallet_path: " << path << "");
-    LOG_PRINT_L3("keys_file_exists: " << std::boolalpha << keys_file_exists << std::noboolalpha
-                 << "  wallet_file_exists: " << std::boolalpha << wallet_file_exists << std::noboolalpha);
-
-
-    // add logic to error out if new wallet requested but named wallet file exists
-    if (keys_file_exists || wallet_file_exists) {
-        std::string error = "attempting to generate or restore wallet, but specified file(s) exist.  Exiting to not risk overwriting.";
-        LOG_ERROR(error);
-        setStatusCritical(error);
-        return false;
-    }
-    // TODO: validate language
-    m_wallet->set_seed_language(language);
-    crypto::secret_key recovery_val, secret_key;
-    try {
-        recovery_val = m_wallet->generate(path, password, secret_key, false, false);
-        m_password = password;
-        clearStatus();
-    } catch (const std::exception &e) {
-        LOG_ERROR("Error creating wallet: " << e.what());
-        setStatusCritical(e.what());
-        return false;
-    }
-
-    return true;
-}
 
 bool WalletImpl::recoverFromKeys(const std::string &path,
                                 const std::string &language,
