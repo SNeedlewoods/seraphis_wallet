@@ -721,6 +721,211 @@ bool WalletImpl::createWatchOnly(const std::string &path, const std::string &pas
     return true;
 }
 
+bool WalletImpl::recover(const std::string &path,
+                         const std::string &password,
+                         const std::string &seed,
+                         const std::string &seed_offset/* = {}*/)
+{
+    clearStatus();
+    m_errorString.clear();
+    if (seed.empty()) {
+        LOG_ERROR("Electrum seed is empty");
+        setStatusError(tr("Electrum seed is empty"));
+        return false;
+    }
+
+    m_recoveringFromSeed = true;
+    m_recoveringFromDevice = false;
+    crypto::secret_key recovery_key;
+    std::string old_language;
+    if (!crypto::ElectrumWords::words_to_bytes(seed, recovery_key, old_language)) {
+        setStatusError(tr("Electrum-style word list failed verification"));
+        return false;
+    }
+    if (!seed_offset.empty())
+    {
+        recovery_key = cryptonote::decrypt_key(recovery_key, seed_offset);
+    }
+
+    if (old_language == crypto::ElectrumWords::old_language_name)
+        old_language = Language::English().get_language_name();
+
+    try {
+        m_wallet->set_seed_language(old_language);
+        m_wallet->generate(path, password, recovery_key, true, false);
+
+    } catch (const std::exception &e) {
+        setStatusCritical(e.what());
+    }
+    return status() == Status_Ok;
+}
+
+bool WalletImpl::recoverFromKeysWithPassword(const std::string &path,
+                                 const std::string &password,
+                                 const std::string &language,
+                                 const std::string &address_string,
+                                 const std::string &viewkey_string,
+                                 const std::string &spendkey_string)
+{
+    // TODO : shouldn't we clearStatus() here?
+    cryptonote::address_parse_info info;
+    if(!get_account_address_from_str(info, m_wallet->nettype(), address_string))
+    {
+        setStatusError(tr("failed to parse address"));
+        return false;
+    }
+
+    // parse optional spend key
+    crypto::secret_key spendkey;
+    bool has_spendkey = false;
+    if (!spendkey_string.empty()) {
+        cryptonote::blobdata spendkey_data;
+        if(!epee::string_tools::parse_hexstr_to_binbuff(spendkey_string, spendkey_data) || spendkey_data.size() != sizeof(crypto::secret_key))
+        {
+            setStatusError(tr("failed to parse secret spend key"));
+            return false;
+        }
+        has_spendkey = true;
+        spendkey = *reinterpret_cast<const crypto::secret_key*>(spendkey_data.data());
+    }
+
+    // parse view secret key
+    bool has_viewkey = true;
+    crypto::secret_key viewkey;
+    if (viewkey_string.empty()) {
+        if(has_spendkey) {
+          has_viewkey = false;
+        }
+        else {
+          setStatusError(tr("Neither view key nor spend key supplied, cancelled"));
+          return false;
+        }
+    }
+    if(has_viewkey) {
+      cryptonote::blobdata viewkey_data;
+      if(!epee::string_tools::parse_hexstr_to_binbuff(viewkey_string, viewkey_data) || viewkey_data.size() != sizeof(crypto::secret_key))
+      {
+          setStatusError(tr("failed to parse secret view key"));
+          return false;
+      }
+      viewkey = *reinterpret_cast<const crypto::secret_key*>(viewkey_data.data());
+    }
+    // check the spend and view keys match the given address
+    crypto::public_key pkey;
+    if(has_spendkey) {
+        if (!crypto::secret_key_to_public_key(spendkey, pkey)) {
+            setStatusError(tr("failed to verify secret spend key"));
+            return false;
+        }
+        if (info.address.m_spend_public_key != pkey) {
+            setStatusError(tr("spend key does not match address"));
+            return false;
+        }
+    }
+    if(has_viewkey) {
+       if (!crypto::secret_key_to_public_key(viewkey, pkey)) {
+           setStatusError(tr("failed to verify secret view key"));
+           return false;
+       }
+       if (info.address.m_view_public_key != pkey) {
+           setStatusError(tr("view key does not match address"));
+           return false;
+       }
+    }
+
+    try
+    {
+        if (has_spendkey && has_viewkey) {
+            m_wallet->generate(path, password, info.address, spendkey, viewkey);
+            LOG_PRINT_L1("Generated new wallet from spend key and view key");
+        }
+        if(!has_spendkey && has_viewkey) {
+            m_wallet->generate(path, password, info.address, viewkey);
+            LOG_PRINT_L1("Generated new view only wallet from keys");
+        }
+        if(has_spendkey && !has_viewkey) {
+           m_wallet->generate(path, password, spendkey, true, false);
+           setSeedLanguage(language);
+           LOG_PRINT_L1("Generated deterministic wallet from spend key with seed language: " + language);
+        }
+    }
+    catch (const std::exception& e) {
+        setStatusError(string(tr("failed to generate new wallet: ")) + e.what());
+        return false;
+    }
+    return true;
+}
+
+bool WalletImpl::recoverFromDevice(const std::string &path, const std::string &password, const std::string &device_name)
+{
+    clearStatus();
+    m_recoveringFromSeed = false;
+    m_recoveringFromDevice = true;
+    try
+    {
+        m_wallet->restore(path, password, device_name);
+        LOG_PRINT_L1("Generated new wallet from device: " + device_name);
+    }
+    catch (const std::exception& e) {
+        setStatusError(string(tr("failed to generate new wallet: ")) + e.what());
+        return false;
+    }
+    return true;
+}
+
+bool WalletImpl::open(const std::string &path, const std::string &password)
+{
+    clearStatus();
+    m_recoveringFromSeed = false;
+    m_recoveringFromDevice = false;
+    try {
+        // TODO: handle "deprecated"
+        // Check if wallet cache exists
+        bool keys_file_exists;
+        bool wallet_file_exists;
+        tools::wallet2::wallet_exists(path, keys_file_exists, wallet_file_exists);
+        if(!wallet_file_exists){
+            // Rebuilding wallet cache, using refresh height from .keys file
+            m_rebuildWalletCache = true;
+        }
+        m_wallet->set_ring_database(get_default_ringdb_path(m_wallet->nettype()));
+        m_wallet->load(path, password);
+
+        m_password = password;
+    } catch (const std::exception &e) {
+        LOG_ERROR("Error opening wallet: " << e.what());
+        setStatusCritical(e.what());
+    }
+    return status() == Status_Ok;
+}
+
+bool WalletImpl::close(bool store)
+{
+    bool result = false;
+    LOG_PRINT_L1("closing wallet...");
+    try {
+        if (store) {
+            // Do not store wallet with invalid status
+            // Status Critical refers to errors on opening or creating wallets.
+            if (status() != Status_Critical)
+                m_wallet->store();
+            else
+                LOG_ERROR("Status_Critical - not saving wallet");
+            LOG_PRINT_L1("wallet::store done");
+        }
+        LOG_PRINT_L1("Calling wallet::stop...");
+        m_wallet->stop();
+        LOG_PRINT_L1("wallet::stop done");
+        m_wallet->deinit();
+        result = true;
+        clearStatus();
+    } catch (const std::exception &e) {
+        setStatusCritical(e.what());
+        LOG_ERROR("Error closing wallet: " << e.what());
+    }
+    return result;
+}
+
 void WalletImpl::setRefreshFromBlockHeight(uint64_t refresh_from_block_height)
 {
     m_wallet->set_refresh_from_block_height(refresh_from_block_height);
@@ -2306,223 +2511,6 @@ bool WalletImpl::verifyMessageWithPublicKey(const std::string &message, const st
 }
 
 
-
-bool WalletImpl::recoverFromKeys(const std::string &path,
-                                const std::string &language,
-                                const std::string &address_string,
-                                const std::string &viewkey_string,
-                                const std::string &spendkey_string)
-{
-    return recoverFromKeysWithPassword(path, "", language, address_string, viewkey_string, spendkey_string);
-}
-
-bool WalletImpl::recoverFromKeysWithPassword(const std::string &path,
-                                 const std::string &password,
-                                 const std::string &language,
-                                 const std::string &address_string,
-                                 const std::string &viewkey_string,
-                                 const std::string &spendkey_string)
-{
-    cryptonote::address_parse_info info;
-    if(!get_account_address_from_str(info, m_wallet->nettype(), address_string))
-    {
-        setStatusError(tr("failed to parse address"));
-        return false;
-    }
-
-    // parse optional spend key
-    crypto::secret_key spendkey;
-    bool has_spendkey = false;
-    if (!spendkey_string.empty()) {
-        cryptonote::blobdata spendkey_data;
-        if(!epee::string_tools::parse_hexstr_to_binbuff(spendkey_string, spendkey_data) || spendkey_data.size() != sizeof(crypto::secret_key))
-        {
-            setStatusError(tr("failed to parse secret spend key"));
-            return false;
-        }
-        has_spendkey = true;
-        spendkey = *reinterpret_cast<const crypto::secret_key*>(spendkey_data.data());
-    }
-
-    // parse view secret key
-    bool has_viewkey = true;
-    crypto::secret_key viewkey;
-    if (viewkey_string.empty()) {
-        if(has_spendkey) {
-          has_viewkey = false;
-        }
-        else {
-          setStatusError(tr("Neither view key nor spend key supplied, cancelled"));
-          return false;
-        }
-    }
-    if(has_viewkey) {
-      cryptonote::blobdata viewkey_data;
-      if(!epee::string_tools::parse_hexstr_to_binbuff(viewkey_string, viewkey_data) || viewkey_data.size() != sizeof(crypto::secret_key))
-      {
-          setStatusError(tr("failed to parse secret view key"));
-          return false;
-      }
-      viewkey = *reinterpret_cast<const crypto::secret_key*>(viewkey_data.data());
-    }
-    // check the spend and view keys match the given address
-    crypto::public_key pkey;
-    if(has_spendkey) {
-        if (!crypto::secret_key_to_public_key(spendkey, pkey)) {
-            setStatusError(tr("failed to verify secret spend key"));
-            return false;
-        }
-        if (info.address.m_spend_public_key != pkey) {
-            setStatusError(tr("spend key does not match address"));
-            return false;
-        }
-    }
-    if(has_viewkey) {
-       if (!crypto::secret_key_to_public_key(viewkey, pkey)) {
-           setStatusError(tr("failed to verify secret view key"));
-           return false;
-       }
-       if (info.address.m_view_public_key != pkey) {
-           setStatusError(tr("view key does not match address"));
-           return false;
-       }
-    }
-
-    try
-    {
-        if (has_spendkey && has_viewkey) {
-            m_wallet->generate(path, password, info.address, spendkey, viewkey);
-            LOG_PRINT_L1("Generated new wallet from spend key and view key");
-        }
-        if(!has_spendkey && has_viewkey) {
-            m_wallet->generate(path, password, info.address, viewkey);
-            LOG_PRINT_L1("Generated new view only wallet from keys");
-        }
-        if(has_spendkey && !has_viewkey) {
-           m_wallet->generate(path, password, spendkey, true, false);
-           setSeedLanguage(language);
-           LOG_PRINT_L1("Generated deterministic wallet from spend key with seed language: " + language);
-        }
-        
-    }
-    catch (const std::exception& e) {
-        setStatusError(string(tr("failed to generate new wallet: ")) + e.what());
-        return false;
-    }
-    return true;
-}
-
-bool WalletImpl::recoverFromDevice(const std::string &path, const std::string &password, const std::string &device_name)
-{
-    clearStatus();
-    m_recoveringFromSeed = false;
-    m_recoveringFromDevice = true;
-    try
-    {
-        m_wallet->restore(path, password, device_name);
-        LOG_PRINT_L1("Generated new wallet from device: " + device_name);
-    }
-    catch (const std::exception& e) {
-        setStatusError(string(tr("failed to generate new wallet: ")) + e.what());
-        return false;
-    }
-    return true;
-}
-
-bool WalletImpl::open(const std::string &path, const std::string &password)
-{
-    clearStatus();
-    m_recoveringFromSeed = false;
-    m_recoveringFromDevice = false;
-    try {
-        // TODO: handle "deprecated"
-        // Check if wallet cache exists
-        bool keys_file_exists;
-        bool wallet_file_exists;
-        tools::wallet2::wallet_exists(path, keys_file_exists, wallet_file_exists);
-        if(!wallet_file_exists){
-            // Rebuilding wallet cache, using refresh height from .keys file
-            m_rebuildWalletCache = true;
-        }
-        m_wallet->set_ring_database(get_default_ringdb_path(m_wallet->nettype()));
-        m_wallet->load(path, password);
-
-        m_password = password;
-    } catch (const std::exception &e) {
-        LOG_ERROR("Error opening wallet: " << e.what());
-        setStatusCritical(e.what());
-    }
-    return status() == Status_Ok;
-}
-
-bool WalletImpl::recover(const std::string &path, const std::string &seed)
-{
-    return recover(path, "", seed);
-}
-
-bool WalletImpl::recover(const std::string &path, const std::string &password, const std::string &seed, const std::string &seed_offset/* = {}*/)
-{
-    clearStatus();
-    m_errorString.clear();
-    if (seed.empty()) {
-        LOG_ERROR("Electrum seed is empty");
-        setStatusError(tr("Electrum seed is empty"));
-        return false;
-    }
-
-    m_recoveringFromSeed = true;
-    m_recoveringFromDevice = false;
-    crypto::secret_key recovery_key;
-    std::string old_language;
-    if (!crypto::ElectrumWords::words_to_bytes(seed, recovery_key, old_language)) {
-        setStatusError(tr("Electrum-style word list failed verification"));
-        return false;
-    }
-    if (!seed_offset.empty())
-    {
-        recovery_key = cryptonote::decrypt_key(recovery_key, seed_offset);
-    }
-
-    if (old_language == crypto::ElectrumWords::old_language_name)
-        old_language = Language::English().get_language_name();
-
-    try {
-        m_wallet->set_seed_language(old_language);
-        m_wallet->generate(path, password, recovery_key, true, false);
-
-    } catch (const std::exception &e) {
-        setStatusCritical(e.what());
-    }
-    return status() == Status_Ok;
-}
-
-bool WalletImpl::close(bool store)
-{
-
-    bool result = false;
-    LOG_PRINT_L1("closing wallet...");
-    try {
-        if (store) {
-            // Do not store wallet with invalid status
-            // Status Critical refers to errors on opening or creating wallets.
-            if (status() != Status_Critical)
-                m_wallet->store();
-            else
-                LOG_ERROR("Status_Critical - not saving wallet");
-            LOG_PRINT_L1("wallet::store done");
-        }
-        LOG_PRINT_L1("Calling wallet::stop...");
-        m_wallet->stop();
-        LOG_PRINT_L1("wallet::stop done");
-        m_wallet->deinit();
-        result = true;
-        clearStatus();
-    } catch (const std::exception &e) {
-        setStatusCritical(e.what());
-        LOG_ERROR("Error closing wallet: " << e.what());
-    }
-    return result;
-}
 
 bool WalletImpl::daemonSynced() const
 {   

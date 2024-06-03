@@ -641,6 +641,65 @@ struct Wallet
     */
     virtual bool createWatchOnly(const std::string &path, const std::string &password, const std::string &language) const = 0;
     /**
+    * brief: recover     - recover wallet from mnemonic seed phrase
+    * param: path        - path ending in wallet_file name
+    * param: password    - wallet password
+    * param: seed        - mnemonic seed phrase
+    * param: seed_offset - mnemonic seed phrase offset password
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
+    virtual bool recover(const std::string &path, const std::string &password, const std::string &seed, const std::string &seed_offset = "") = 0;
+    bool recover(const std::string &path, const std::string &seed) { return recover(path, "", seed); } // deprecated
+    /**
+    * brief: recoverFromKeysWithPassword - recover wallet from keys
+    * param: path            - path ending in wallet_file name
+    * param: password        - wallet password
+    * param: address_string  - wallet main address (TODO : shouldn't this be optional and only nedded for non-deterministic or view-only?)
+    * param: viewkey_string  - needed for non-deterministic or view-only wallet
+    * param: spendkey_string - needed for non-deterministic or deterministic wallet
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
+    virtual bool recoverFromKeysWithPassword(const std::string &path,
+                            const std::string &password,
+                            const std::string &language,
+                            const std::string &address_string,
+                            const std::string &viewkey_string,
+                            const std::string &spendkey_string = "") = 0;
+    bool recoverFromKeys(const std::string &path,
+                         const std::string &language,
+                         const std::string &address_string,
+                         const std::string &viewkey_string,
+                         const std::string &spendkey_string) // deprecated
+    {
+        return recoverFromKeysWithPassword(path, "", language, address_string, viewkey_string, spendkey_string);
+    }
+    /**
+    * brief: recoverFromDevice - recover wallet from hardware device
+    * param: path        - path ending in wallet_file name
+    * param: password    - wallet password
+    * param: device_name -
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
+    virtual bool recoverFromDevice(const std::string &path, const std::string &password, const std::string &device_name) = 0;
+    /**
+    * brief: open - load wallet from wallet file and keys file
+    * param: path     - path ending in wallet_file name
+    * param: password - wallet password
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
+    virtual bool open(const std::string &path, const std::string &password) = 0;
+    /**
+    * brief: close - close wallet
+    * param: store - true if wallet should get stored before closing
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
+    virtual bool close(bool store = true) = 0;
+    /**
     * brief: setRefreshFromBlockHeight - set wallet restore height
     * param: refresh_from_block_height - restore height
     */

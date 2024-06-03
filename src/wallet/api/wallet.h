@@ -88,6 +88,7 @@ public:
     * param: desc_params -
     */
     static void initOptions(boost::program_options::options_description &desc_params) { tools::wallet2::init_options(desc_params); }
+    // TODO : I tend towards removing these `make*()` functions, imo `create*()`, `recover*()`, `open()` should suffice and are more obvious
     /**
     * brief: makeFromJson - use json_file to generate a wallet
     * param: vm -
@@ -177,6 +178,12 @@ public:
     bool init(const std::string &daemon_address, uint64_t upper_transaction_size_limit = 0, const std::string &daemon_username = "", const std::string &daemon_password = "", bool use_ssl = false, bool lightWallet = false, const std::string &proxy_address = "") override;
     bool create(const std::string &path, const std::string &password, const std::string &language) override;
     bool createWatchOnly(const std::string &path, const std::string &password, const std::string &language) const override;
+    // TODO NEXT : look into create non-deterministic
+    bool recover(const std::string &path,const std::string &password, const std::string &seed, const std::string &seed_offset = {}) override;
+    bool recoverFromKeysWithPassword(const std::string &path, const std::string &password, const std::string &language, const std::string &address_string, const std::string &viewkey_string, const std::string &spendkey_string = "") override;
+    bool recoverFromDevice(const std::string &path, const std::string &password, const std::string &device_name) override;
+    bool open(const std::string &path, const std::string &password) override;
+    bool close(bool store = true) override;
     void setRefreshFromBlockHeight(uint64_t refresh_from_block_height) override;
     void setRecoveringFromSeed(bool recoveringFromSeed) override;
     void setRecoveringFromDevice(bool recoveringFromDevice) override;
@@ -284,32 +291,6 @@ public:
     std::string signMultisigParticipant(const std::string &message) const override;
     bool verifyMessageWithPublicKey(const std::string &message, const std::string &publicKey, const std::string &signature) const override;
 
-
-    // TODO : CONTINUE HERE
-    // Non-override
-    bool open(const std::string &path, const std::string &password);
-    bool recover(const std::string &path,const std::string &password,
-                            const std::string &seed, const std::string &seed_offset = {});
-    bool recoverFromKeysWithPassword(const std::string &path,
-                            const std::string &password,
-                            const std::string &language,
-                            const std::string &address_string,
-                            const std::string &viewkey_string,
-                            const std::string &spendkey_string = "");
-    // following two methods are deprecated since they create passwordless wallets
-    // use the two equivalent methods above
-    bool recover(const std::string &path, const std::string &seed);
-    // deprecated: use recoverFromKeysWithPassword() instead
-    bool recoverFromKeys(const std::string &path,
-                            const std::string &language,
-                            const std::string &address_string,
-                            const std::string &viewkey_string,
-                            const std::string &spendkey_string = "");
-    bool recoverFromDevice(const std::string &path,
-                           const std::string &password,
-                           const std::string &device_name);
-    bool close(bool store = true);
-    // void setListener(Listener *) {}
 
 private:
     void clearStatus() const;
