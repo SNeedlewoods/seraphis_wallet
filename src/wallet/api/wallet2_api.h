@@ -332,8 +332,8 @@ struct TransactionHistory
 };
 
 /**
- * @brief AddressBookRow - provides functions to manage address book
- */
+* brief: AddressBookRow - provides an interface for address book entries
+*/
 struct AddressBookRow {
 public:
     AddressBookRow(std::size_t _rowId, const std::string &_address, const std::string &_paymentId, const std::string &_description):
@@ -341,24 +341,24 @@ public:
         m_address(_address),
         m_paymentId(_paymentId), 
         m_description(_description) {}
+
+    std::size_t getRowId() const {return m_rowId;}
+    std::string getAddress() const {return m_address;}
+    std::string getPaymentId() const {return m_paymentId;} // OBSOLETE
+    std::string getDescription() const {return m_description;}
  
+public:
+    std::string extra; // TODO : it seems this is not used in the current implementation, can we remove it?
 private:
     std::size_t m_rowId;
     std::string m_address;
-    std::string m_paymentId;
+    std::string m_paymentId; // OBSOLETE
     std::string m_description;
-public:
-    std::string extra;
-    std::string getAddress() const {return m_address;} 
-    std::string getDescription() const {return m_description;} 
-    std::string getPaymentId() const {return m_paymentId;} 
-    std::size_t getRowId() const {return m_rowId;}
 };
 
 /**
- * @brief The AddressBook - interface for 
-Book
- */
+* brief: AddressBook - provides functions to manage address book
+*/
 struct AddressBook
 {
     enum ErrorCode {
@@ -368,21 +368,63 @@ struct AddressBook
         Invalid_Payment_Id
     };
     virtual ~AddressBook() = 0;
+    /**
+    * brief: getAll -
+    * return: all address book rows/entries
+    */
     virtual std::vector<AddressBookRow*> getAll() const = 0;
+    /**
+    * brief: addRow      - add new entry to address book
+    * param: dst_addr    - destination address
+    * param: payment_id  - OBSOLETE
+    * param: description - arbitrary note
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
     virtual bool addRow(const std::string &dst_addr , const std::string &payment_id, const std::string &description) = 0;  
+    /**
+    * brief: deleteRow - remove entry from address book
+    * param: rowId - index
+    * return: true if succeeded
+    */
     virtual bool deleteRow(std::size_t rowId) = 0;
+    /**
+    * brief: setDescription - set or change description of address book entry
+    * param: index -
+    * param: description - arbitrary note
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
     virtual bool setDescription(std::size_t index, const std::string &description) = 0;
+    /**
+    * brief: refresh - clear address book entries and create new ones from wallet cache data
+    * param: index -
+    * param: description - arbitrary note
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
     virtual void refresh() = 0;  
-    // TODO : look into how this works in AddressBook
+    // TODO : since this is DEPRECATED in `Wallet` maybe we should add `statusWithErrorString()` and deprecate `errorCode()` and `errorString()` here too
     /**
     * brief: errorString -
     * return: error string in case of error status
     */
     virtual std::string errorString() const = 0;
+    /**
+    * brief: errorCode -
+    * return: address book status (see `ErrorCode` above)
+    */
     virtual int errorCode() const = 0;
+    /**
+    * brief: lookupPaymentID - get row index of address book entry with given payment_id
+    * param: payment_id -
+    * return: row index if succeeded, else -1
+    * note: OBSOLETE - payment id now is part of integrated addresses
+    */
     virtual int lookupPaymentID(const std::string &payment_id) const = 0;
 };
 
+// TODO CONTINUE HERE
 struct SubaddressRow {
 public:
     SubaddressRow(std::size_t _rowId, const std::string &_address, const std::string &_label):

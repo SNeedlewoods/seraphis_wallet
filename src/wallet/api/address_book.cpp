@@ -38,11 +38,22 @@
 #include <vector>
 
 namespace Monero {
-  
+
+// TODO : figure out why we need this
 AddressBook::~AddressBook() {}
   
 AddressBookImpl::AddressBookImpl(WalletImpl *wallet)
     : m_wallet(wallet), m_errorCode(Status_Ok) {}
+
+AddressBookImpl::~AddressBookImpl()
+{
+  clearRows();
+}
+
+std::vector<AddressBookRow*> AddressBookImpl::getAll() const
+{
+  return m_rows;
+}
 
 bool AddressBookImpl::addRow(const std::string &dst_addr , const std::string &payment_id_str, const std::string &description)
 {
@@ -70,12 +81,23 @@ bool AddressBookImpl::addRow(const std::string &dst_addr , const std::string &pa
   return r;
 }
 
+bool AddressBookImpl::deleteRow(std::size_t rowId)
+{
+  LOG_PRINT_L2("Deleting address book row " << rowId);
+  bool r = m_wallet->m_wallet->delete_address_book_row(rowId);
+  if (r)
+    refresh();
+  return r;
+}
+
 bool AddressBookImpl::setDescription(std::size_t index, const std::string &description)
 {
     clearStatus();
 
     const auto ab = m_wallet->m_wallet->get_address_book();
     if (index >= ab.size()){
+        // TODO : consider setting:
+//        m_error_code = ErrorCode::GeneralError;
         return false;
     }
 
@@ -111,15 +133,6 @@ void AddressBookImpl::refresh()
   
 }
 
-bool AddressBookImpl::deleteRow(std::size_t rowId)
-{
-  LOG_PRINT_L2("Deleting address book row " << rowId);
-  bool r = m_wallet->m_wallet->delete_address_book_row(rowId);
-  if (r)
-    refresh();
-  return r;
-} 
-
 int AddressBookImpl::lookupPaymentID(const std::string &payment_id) const
 {
     // turn short ones into long ones for comparison
@@ -154,15 +167,5 @@ void AddressBookImpl::clearStatus(){
   m_errorCode = 0;
 }
 
-std::vector<AddressBookRow*> AddressBookImpl::getAll() const
-{
-  return m_rows;
-}
-
-
-AddressBookImpl::~AddressBookImpl()
-{
-  clearRows();
-}
 
 } // namespace
