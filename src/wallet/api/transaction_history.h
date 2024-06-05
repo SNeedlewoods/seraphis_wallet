@@ -40,12 +40,12 @@ class TransactionHistoryImpl : public TransactionHistory
 public:
     TransactionHistoryImpl(WalletImpl * wallet);
     ~TransactionHistoryImpl();
-    virtual int count() const;
-    virtual TransactionInfo * transaction(int index)  const;
-    virtual TransactionInfo * transaction(const std::string &id) const;
-    virtual std::vector<TransactionInfo*> getAll() const;
-    virtual void refresh();
-    virtual void setTxNote(const std::string &txid, const std::string &note);
+    int count() const override;
+    TransactionInfo * transaction(int index)  const override;
+    TransactionInfo * transaction(const std::string &id) const override;
+    std::vector<TransactionInfo*> getAll() const override;
+    void refresh() override;
+    void setTxNote(const std::string &txid, const std::string &note) override;
 
 private:
 

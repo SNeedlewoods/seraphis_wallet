@@ -68,6 +68,7 @@ string UnsignedTransactionImpl::errorString() const
     return m_errorString;
 }
 
+// TODO : order in `wallet2_api.h`, `unsigned_transaction.h` and this file is messy
 bool UnsignedTransactionImpl::sign(const std::string &signedFileName)
 {
   if(m_wallet.watchOnly())

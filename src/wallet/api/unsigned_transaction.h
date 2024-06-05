@@ -51,13 +51,19 @@ public:
     std::vector<std::string> paymentId() const override;
     std::vector<std::string> recipientAddress() const override;
     uint64_t txCount() const override;
-    // sign txs and save to file
     bool sign(const std::string &signedFileName) override;
     std::string confirmationMessage() const override {return m_confirmationMessage;}
     uint64_t minMixinCount() const override;
 
 private:
-    // Callback function to check all loaded tx's and generate confirmationMessage
+    /**
+    * brief: checkLoadedTx - callback function to check all loaded tx's and generate confirmationMessage
+    * param: get_num_txes -
+    * param: get_tx -
+    * param: extra_message -
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
     bool checkLoadedTx(const std::function<size_t()> get_num_txes, const std::function<const tools::wallet2::tx_construction_data&(size_t)> &get_tx, const std::string &extra_message);
     
     friend class WalletImpl;

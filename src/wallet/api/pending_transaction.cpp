@@ -57,7 +57,8 @@ PendingTransactionImpl::PendingTransactionImpl(WalletImpl &wallet)
 
 PendingTransactionImpl::~PendingTransactionImpl()
 {
-
+    // TODO : should we add this to have the same behavior as `UnsignedTransactionImpl`
+//    LOG_PRINT_L3("Pending tx deleted");
 }
 
 int PendingTransactionImpl::status() const
@@ -70,6 +71,7 @@ string PendingTransactionImpl::errorString() const
     return m_errorString;
 }
 
+// TODO : w.r.t. `wallet2_api.h` and `pending_transaction.h` this belongs between `fee()` and `txCount()`
 std::vector<std::string> PendingTransactionImpl::txid() const
 {
     std::vector<std::string> txid;
@@ -84,56 +86,56 @@ bool PendingTransactionImpl::commit(const std::string &filename, bool overwrite)
     LOG_PRINT_L3("m_pending_tx size: " << m_pending_tx.size());
 
     try {
-      // Save tx to file
-      if (!filename.empty()) {
-        boost::system::error_code ignore;
-        bool tx_file_exists = boost::filesystem::exists(filename, ignore);
-        if(tx_file_exists && !overwrite){
-          m_errorString = string(tr("Attempting to save transaction to file, but specified file(s) exist. Exiting to not risk overwriting. File:")) + filename;
-          m_status = Status_Error;
-          LOG_ERROR(m_errorString);
-          return false;
-        }
-        bool r = m_wallet.m_wallet->save_tx(m_pending_tx, filename);
-        if (!r) {
-          m_errorString = tr("Failed to write transaction(s) to file");
-          m_status = Status_Error;
-        } else {
-          m_status = Status_Ok;
-        }
-      }
-      // Commit tx
-      else {
-        auto multisigState = m_wallet.multisig();
-        if (multisigState.isMultisig && m_signers.size() < multisigState.threshold) {
-            throw runtime_error("Not enough signers to send multisig transaction");
-        }
-
-        m_wallet.pauseRefresh();
-
-        const bool tx_cold_signed = m_wallet.m_wallet->get_account().get_device().has_tx_cold_sign();
-        if (tx_cold_signed){
-          std::unordered_set<size_t> selected_transfers;
-          for(const tools::wallet2::pending_tx & ptx : m_pending_tx){
-            for(size_t s : ptx.selected_transfers){
-              selected_transfers.insert(s);
+        // Save tx to file
+        if (!filename.empty()) {
+            boost::system::error_code ignore;
+            bool tx_file_exists = boost::filesystem::exists(filename, ignore);
+            if(tx_file_exists && !overwrite){
+                m_errorString = string(tr("Attempting to save transaction to file, but specified file(s) exist. Exiting to not risk overwriting. File:")) + filename;
+                m_status = Status_Error;
+                LOG_ERROR(m_errorString);
+                return false;
             }
-          }
-
-          m_wallet.m_wallet->cold_tx_aux_import(m_pending_tx, m_tx_device_aux);
-          bool r = m_wallet.m_wallet->import_key_images(m_key_images, 0, selected_transfers);
-          if (!r){
-            throw runtime_error("Cold sign transaction submit failed - key image sync fail");
-          }
+            bool r = m_wallet.m_wallet->save_tx(m_pending_tx, filename);
+            if (!r) {
+                m_errorString = tr("Failed to write transaction(s) to file");
+                m_status = Status_Error;
+            } else {
+                m_status = Status_Ok;
+            }
         }
+        // Commit tx
+        else {
+            auto multisigState = m_wallet.multisig();
+            if (multisigState.isMultisig && m_signers.size() < multisigState.threshold) {
+                throw runtime_error("Not enough signers to send multisig transaction");
+            }
 
-        while (!m_pending_tx.empty()) {
-            auto & ptx = m_pending_tx.back();
-            m_wallet.m_wallet->commit_tx(ptx);
-            // if no exception, remove element from vector
-            m_pending_tx.pop_back();
-        } // TODO: extract method;
-      }
+            m_wallet.pauseRefresh();
+
+            const bool tx_cold_signed = m_wallet.m_wallet->get_account().get_device().has_tx_cold_sign();
+            if (tx_cold_signed){
+                std::unordered_set<size_t> selected_transfers;
+                for(const tools::wallet2::pending_tx & ptx : m_pending_tx){
+                    for(size_t s : ptx.selected_transfers){
+                        selected_transfers.insert(s);
+                    }
+                }
+
+                m_wallet.m_wallet->cold_tx_aux_import(m_pending_tx, m_tx_device_aux);
+                bool r = m_wallet.m_wallet->import_key_images(m_key_images, 0, selected_transfers);
+                if (!r){
+                    throw runtime_error("Cold sign transaction submit failed - key image sync fail");
+                }
+            }
+
+            while (!m_pending_tx.empty()) {
+                auto & ptx = m_pending_tx.back();
+                m_wallet.m_wallet->commit_tx(ptx);
+                // if no exception, remove element from vector
+                m_pending_tx.pop_back();
+            } // TODO: extract method;
+        }
     } catch (const tools::error::daemon_busy&) {
         // TODO: make it translatable with "tr"?
         m_errorString = tr("daemon is busy. Please try again later.");
@@ -148,7 +150,7 @@ bool PendingTransactionImpl::commit(const std::string &filename, bool overwrite)
         m_status = Status_Error;
         m_errorString = writer.str();
         if (!reason.empty())
-          m_errorString  += string(tr(". Reason: ")) + reason;
+            m_errorString  += string(tr(". Reason: ")) + reason;
     } catch (const std::exception &e) {
         m_errorString = string(tr("Unknown exception: ")) + e.what();
         m_status = Status_Error;

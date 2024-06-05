@@ -103,6 +103,7 @@ void TransactionHistoryImpl::setTxNote(const std::string &txid, const std::strin
     refresh();
 }
 
+// TODO : this is the only out-of-order function in TransactionHistory(Impl), would belong above `setTxNote`
 void TransactionHistoryImpl::refresh()
 {
     // multithreaded access:
@@ -129,6 +130,10 @@ void TransactionHistoryImpl::refresh()
     // one input transaction contains only one transfer. e.g. <transaction_id> - <100XMR>
 
     std::list<std::pair<crypto::hash, tools::wallet2::payment_details>> in_payments;
+    // TODO : afaict `get_payments()` (and equivalent functions below) accept subaddress major and minor index
+    //        but we only use them to get payments to all accounts/subaddresses
+    //        is this intended behavior or do we want to also allow to keep history of specified accounts/subaddresses
+    //        maybe, if we need that, we could just fetch that information in another function from the full history
     m_wallet->m_wallet->get_payments(in_payments, min_height, max_height);
     for (std::list<std::pair<crypto::hash, tools::wallet2::payment_details>>::const_iterator i = in_payments.begin(); i != in_payments.end(); ++i) {
         const tools::wallet2::payment_details &pd = i->second;

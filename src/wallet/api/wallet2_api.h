@@ -68,8 +68,8 @@ enum NetworkType : uint8_t {
     };
 
 /**
- * @brief Transaction-like interface for sending money
- */
+* brief: Transaction-like interface for sending money
+*/
 struct PendingTransaction
 {
     enum Status {
@@ -87,50 +87,96 @@ struct PendingTransaction
     };
 
     virtual ~PendingTransaction() = 0;
+    // TODO : since this is DEPRECATED in `Wallet` maybe we should add `statusWithErrorString()` and deprecate `status()` and `errorString()` here too
+    /**
+    * brief: status -
+    * return: pending transaction status (Status_Ok | Status_Error | Status_Critical)
+    */
     virtual int status() const = 0;
+    /**
+    * brief: errorString -
+    * return: error string in case of error status
+    */
     virtual std::string errorString() const = 0;
-    // commit transaction or save to file if filename is provided.
+    /**
+    * brief: commit - commit transaction or save it to a file if filename is provided
+    * param: filename  -
+    * param: overwrite -
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
     virtual bool commit(const std::string &filename = "", bool overwrite = false) = 0;
+    /**
+    * brief: amount -
+    * return: total amount in `m_pending_tx` vector for all destinations
+    */
     virtual uint64_t amount() const = 0;
+    /**
+    * brief: dust -
+    * return: total dust in `m_pending_tx` vector
+    */
     virtual uint64_t dust() const = 0;
+    /**
+    * brief: fee -
+    * return: total fee in `m_pending_tx` vector
+    */
     virtual uint64_t fee() const = 0;
+    /**
+    * brief: txid -
+    * return: all tx ids in `m_pending_tx` vector
+    */
     virtual std::vector<std::string> txid() const = 0;
-    /*!
-     * \brief txCount - number of transactions current transaction will be splitted to
-     * \return
-     */
+    // TODO : investigate how `m_pending_tx` gets set, I think this description may be wrong (or not accurate), otherwise we wouldn't need a vector for subaddrAccount (single account would be enough)
+    /**
+    * brief: txCount - get number of transactions current transaction will be splitted to
+    * return: size of `m_pending_tx` vector
+    */
     virtual uint64_t txCount() const = 0;
+    /**
+    * brief: subaddrAccount - get major indices for accounts used in tx
+    * return: account indices
+    */
     virtual std::vector<uint32_t> subaddrAccount() const = 0;
+    /**
+    * brief: subaddrIndices - get a set of minor indices used as inputs, per tx in `m_pending_tx`
+    * return: subaddress indices
+    */
     virtual std::vector<std::set<uint32_t>> subaddrIndices() const = 0;
 
     /**
-     * @brief multisigSignData
-     * @return encoded multisig transaction with signers' keys.
-     *         Transfer this data to another wallet participant to sign it.
-     *         Assumed use case is:
-     *         1. Initiator:
-     *              auto data = pendingTransaction->multisigSignData();
-     *         2. Signer1:
-     *              pendingTransaction = wallet->restoreMultisigTransaction(data);
-     *              pendingTransaction->signMultisigTx();
-     *              auto signed = pendingTransaction->multisigSignData();
-     *         3. Signer2:
-     *              pendingTransaction = wallet->restoreMultisigTransaction(signed);
-     *              pendingTransaction->signMultisigTx();
-     *              pendingTransaction->commit();
-     */
+    * brief: multisigSignData - initialize multisig tx
+    *         Transfer this data to another wallet participant to sign it.
+    *         Assumed use case is:
+    *         1. Initiator:
+    *              auto data = pendingTransaction->multisigSignData();
+    *         2. Signer1:
+    *              pendingTransaction = wallet->restoreMultisigTransaction(data);
+    *              pendingTransaction->signMultisigTx();
+    *              auto signed = pendingTransaction->multisigSignData();
+    *         3. Signer2:
+    *              pendingTransaction = wallet->restoreMultisigTransaction(signed);
+    *              pendingTransaction->signMultisigTx();
+    *              pendingTransaction->commit();
+    * return: encoded multisig transaction with signers' keys if succeeded, else empty string
+    * note: sets status error on fail
+    */
     virtual std::string multisigSignData() = 0;
+    /**
+    * brief: signMultisigTx - sign initialized multisig tx
+    *                         (see `multisigSignData()`)
+    * note: sets status error on fail
+    */
     virtual void signMultisigTx() = 0;
     /**
-     * @brief signersKeys
-     * @return vector of base58-encoded signers' public keys
-     */
+    * brief: signersKeys - get public keys from multisig tx signers
+    * return: base58-encoded signers' public keys
+    */
     virtual std::vector<std::string> signersKeys() const = 0;
 };
 
 /**
- * @brief Transaction-like interface for sending money
- */
+* brief: Transaction-like interface for sending money
+*/
 struct UnsignedTransaction
 {
     enum Status {
@@ -140,32 +186,74 @@ struct UnsignedTransaction
     };
 
     virtual ~UnsignedTransaction() = 0;
+    // TODO : since this is DEPRECATED in `Wallet` maybe we should add `statusWithErrorString()` and deprecate `status()` and `errorString()` here too
+    /**
+    * brief: status -
+    * return: wallet status (Status_Ok | Status_Error | Status_Critical)
+    */
     virtual int status() const = 0;
+    /**
+    * brief: errorString -
+    * return: error string in case of error status
+    */
     virtual std::string errorString() const = 0;
+    /**
+    * brief: amount -
+    * return: amounts per destination per tx in `m_unsigned_tx_set`
+    */
     virtual std::vector<uint64_t> amount() const = 0;
+    /**
+    * brief: fee -
+    * return: fees per tx in `m_unsigned_tx_set`
+    */
     virtual std::vector<uint64_t>  fee() const = 0;
+    // TODO : deprecated!?
+    /**
+    * brief: mixin -
+    * return: minimum amount of decoy ring members per tx in `m_unsigned_tx_set`
+    */
     virtual std::vector<uint64_t> mixin() const = 0;
-    // returns a string with information about all transactions.
+    /**
+    * brief: confirmationMessage - get `m_confirmationMessage`, which gets set in `WalletImpl::loadUnsignedTx()`->`UnsingedTransactionImpl::checkLoadedTx()`
+    * return: information about all transactions
+    */
     virtual std::string confirmationMessage() const = 0;
+    /**
+    * brief: paymentId -
+    * return: vector of hexadecimal payment id (if given) or empty string per tx in `m_unsigned_tx_set`
+    */
     virtual std::vector<std::string> paymentId() const = 0;
+    // TODO : investigate if this is what we want, or do we need to add a loop in `recipientAddress()` for "per destination"
+    /**
+    * brief: recipientAddress -
+    * return: first destination address per tx in `m_unsigned_tx_set`
+    */
     virtual std::vector<std::string> recipientAddress() const = 0;
+    // TODO : deprecated?
+    /**
+    * brief: minMixinCount -
+    * return: minimum amount of decoy ring members from all txs in `m_unsigned_tx_set`
+    */
     virtual uint64_t minMixinCount() const = 0;
-    /*!
-     * \brief txCount - number of transactions current transaction will be splitted to
-     * \return
-     */
+    // TODO : investigate, I think this description may be wrong (or not accurate)
+    /**
+    * brief: txCount - get number of transactions current transaction will be splitted to
+    * return: size of `m_unsigned_tx_set.txes` vector
+    */
     virtual uint64_t txCount() const = 0;
-   /*!
-    * @brief sign - Sign txs and saves to file
-    * @param signedFileName
-    * return - true on success
+    /**
+    * brief: sign - sign tx and save it to file
+    * param: signedFileName -
+    * return: true if succeeded
+    * note: sets status error on fail
     */
     virtual bool sign(const std::string &signedFileName) = 0;
 };
 
 /**
- * @brief The TransactionInfo - interface for displaying transaction information
- */
+* brief: TransactionInfo - interface for displaying transaction information
+*                          used in `TransactionHistory`
+*/
 struct TransactionInfo
 {
     enum Direction {
@@ -180,12 +268,14 @@ struct TransactionInfo
     };
 
     virtual ~TransactionInfo() = 0;
-    virtual int  direction() const = 0;
+    // Getter functions
+    // TODO : consider to return `Direction` instead of `int`
+    virtual int  direction() const = 0;     // return: 0 = in, 1 = out
     virtual bool isPending() const = 0;
     virtual bool isFailed() const = 0;
     virtual bool isCoinbase() const = 0;
     virtual uint64_t amount() const = 0;
-    virtual uint64_t fee() const = 0;
+    virtual uint64_t fee() const = 0;       // return: fee if `Direction_Out`, else 0
     virtual uint64_t blockHeight() const = 0;
     virtual std::string description() const = 0;
     virtual std::set<uint32_t> subaddrIndex() const = 0;
@@ -193,24 +283,51 @@ struct TransactionInfo
     virtual std::string label() const = 0;
     virtual uint64_t confirmations() const = 0;
     virtual uint64_t unlockTime() const = 0;
-    //! transaction_id
-    virtual std::string hash() const = 0;
+    virtual std::string hash() const = 0;   // return: transaction id
     virtual std::time_t timestamp() const = 0;
     virtual std::string paymentId() const = 0;
     //! only applicable for output transactions
     virtual const std::vector<Transfer> & transfers() const = 0;
 };
+
 /**
- * @brief The TransactionHistory - interface for displaying transaction history
- */
+* brief: TransactionHistory - interface for displaying transaction history
+*/
 struct TransactionHistory
 {
     virtual ~TransactionHistory() = 0;
+    /**
+    * brief: count -
+    * return: amount of transactions in this history
+    */
     virtual int count() const = 0;
+    /**
+    * brief: transaction - get info by index
+    * param: index - index of tx info in this history
+    * return: transaction info if available for given index, else nullptr
+    */
     virtual TransactionInfo * transaction(int index)  const = 0;
+    /**
+    * brief: transaction - get info by tx id
+    * param: id - tx id
+    * return: transaction info if available for given id, else nullptr
+    */
     virtual TransactionInfo * transaction(const std::string &id) const = 0;
+    /**
+    * brief: getAll - get every transaction info in this history
+    * return: transaction info
+    */
     virtual std::vector<TransactionInfo*> getAll() const = 0;
+    /**
+    * brief: refresh - clear history and create a new one from wallet cache data
+    */
     virtual void refresh() = 0;
+    // TODO : not so sure here is the best place for this function
+    /**
+    * brief: setTxNote - set a note for tx with given txid, only for wallet owner
+    * param: txid -
+    * param: note -
+    */
     virtual void setTxNote(const std::string &txid, const std::string &note) = 0;
 };
 
@@ -256,6 +373,11 @@ struct AddressBook
     virtual bool deleteRow(std::size_t rowId) = 0;
     virtual bool setDescription(std::size_t index, const std::string &description) = 0;
     virtual void refresh() = 0;  
+    // TODO : look into how this works in AddressBook
+    /**
+    * brief: errorString -
+    * return: error string in case of error status
+    */
     virtual std::string errorString() const = 0;
     virtual int errorCode() const = 0;
     virtual int lookupPaymentID(const std::string &payment_id) const = 0;
@@ -465,7 +587,7 @@ struct Wallet
     virtual void setSeedLanguage(const std::string &arg) = 0;
     /**
     * brief: status -
-    * return: wallet status (Status_Ok | Status_Error)
+    * return: wallet status (Status_Ok | Status_Error | Status_Critical)
     * note: DEPRECATED - use safe alternative statusWithErrorString
     */
     virtual int status() const = 0;
@@ -477,7 +599,7 @@ struct Wallet
     virtual std::string errorString() const = 0;
     /**
     * brief: statusWithErrorString -
-    * outparam: status      - (Status_Ok | Status_Error)
+    * outparam: status      - (Status_Ok | Status_Error | Status_Critical)
     * outparam: errorString - set in case of error status
     */
     virtual void statusWithErrorString(int& status, std::string& errorString) const = 0;
@@ -1711,7 +1833,11 @@ struct WalletManager
      */
     virtual std::vector<std::string> findWallets(const std::string &path) = 0;
 
-    //! returns verbose error string regarding last error;
+    // TODO : look into how this works in WalletManager
+    /**
+    * brief: errorString -
+    * return: error string in case of error status
+    */
     virtual std::string errorString() const = 0;
 
     //! set the daemon address (hostname and port)
