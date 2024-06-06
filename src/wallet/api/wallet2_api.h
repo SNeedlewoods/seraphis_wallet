@@ -398,10 +398,6 @@ struct AddressBook
     virtual bool setDescription(std::size_t index, const std::string &description) = 0;
     /**
     * brief: refresh - clear address book entries and create new ones from wallet cache data
-    * param: index -
-    * param: description - arbitrary note
-    * return: true if succeeded
-    * note: sets status error on fail
     */
     virtual void refresh() = 0;  
     // TODO : since this is DEPRECATED in `Wallet` maybe we should add `statusWithErrorString()` and deprecate `errorCode()` and `errorString()` here too
@@ -424,35 +420,75 @@ struct AddressBook
     virtual int lookupPaymentID(const std::string &payment_id) const = 0;
 };
 
-// TODO CONTINUE HERE
-struct SubaddressRow {
+/**
+* brief: SubaddressRow - provides an interface for subaddress entries
+*/
+struct SubaddressRow
+{
 public:
     SubaddressRow(std::size_t _rowId, const std::string &_address, const std::string &_label):
         m_rowId(_rowId),
         m_address(_address),
         m_label(_label) {}
+
+    std::size_t getRowId() const {return m_rowId;}
+    std::string getAddress() const {return m_address;}
+    std::string getLabel() const {return m_label;}
  
+public:
+    std::string extra;
 private:
     std::size_t m_rowId;
     std::string m_address;
     std::string m_label;
-public:
-    std::string extra;
-    std::string getAddress() const {return m_address;}
-    std::string getLabel() const {return m_label;}
-    std::size_t getRowId() const {return m_rowId;}
 };
 
+/**
+* brief: Subaddress - provides functions to manage subaddresses
+*/
 struct Subaddress
 {
     virtual ~Subaddress() = 0;
+    /**
+    * brief: getAll -
+    * return: all subaddress rows/entries
+    */
     virtual std::vector<SubaddressRow*> getAll() const = 0;
+    // TODO : check if accountIndex already exists before adding new subaddress and if it does not exist either
+    //          1. do nothing (or add error code and error message to Subaddress)
+    //          2. create the account
+    //        because now it just throws `account_index_outofbound`
+    /**
+    * brief: addRow - add new subaddress entry
+    * param: accountIndex - major index
+    * param: label        - arbitrary note
+    */
     virtual void addRow(uint32_t accountIndex, const std::string &label) = 0;
+    // TODO : don't we need deleteRow()?
+    /**
+    * brief: setLabel - set or change label of subaddress entry
+    * param: accountIndex - major index
+    * param: addressIndex - minor index
+    * param: label        - arbitrary note
+    */
     virtual void setLabel(uint32_t accountIndex, uint32_t addressIndex, const std::string &label) = 0;
+    // TODO : this seems flawed, e.g.
+    //          addRow(0, "Account_0_Subaddress")
+    //          addRow(1, "Account_1_Subaddress")
+    //          refresh(0) -> clears both entries, but only restores the first one
+    //        to solve either add `accountIndex` param to clear, or refresh all
+    /**
+    * brief: refresh - clear subaddress entries and create new ones from wallet cache data
+    * param: accountIndex -
+    */
     virtual void refresh(uint32_t accountIndex) = 0;
 };
 
-struct SubaddressAccountRow {
+/**
+* brief: SubaddressAccountRow - provides an interface for subaddress account entries
+*/
+struct SubaddressAccountRow
+{
 public:
     SubaddressAccountRow(std::size_t _rowId, const std::string &_address, const std::string &_label, const std::string &_balance, const std::string &_unlockedBalance):
         m_rowId(_rowId),
@@ -461,30 +497,56 @@ public:
         m_balance(_balance),
         m_unlockedBalance(_unlockedBalance) {}
 
-private:
-    std::size_t m_rowId;
-    std::string m_address;
-    std::string m_label;
-    std::string m_balance;
-    std::string m_unlockedBalance;
-public:
-    std::string extra;
+    std::size_t getRowId() const {return m_rowId;}
     std::string getAddress() const {return m_address;}
     std::string getLabel() const {return m_label;}
     std::string getBalance() const {return m_balance;}
     std::string getUnlockedBalance() const {return m_unlockedBalance;}
-    std::size_t getRowId() const {return m_rowId;}
+
+public:
+    std::string extra;
+private:
+    std::size_t m_rowId;
+    // TODO : intuitively I'd expect something like the following (meaning the account handles subaddresses):
+//    std::vector<Subaddress> m_addresses;
+    std::string m_address; // subaddress {major_index: m_rowId, minor_index: 0}
+    std::string m_label;
+    std::string m_balance;
+    std::string m_unlockedBalance;
 };
 
+/**
+* brief: SubaddressAccount - provides functions to manage subaddress accounts
+*/
 struct SubaddressAccount
 {
     virtual ~SubaddressAccount() = 0;
+    /**
+    * brief: getAll -
+    * return: all subaddress account rows/entries
+    */
     virtual std::vector<SubaddressAccountRow*> getAll() const = 0;
+    /**
+    * brief: addRow - add new subaddress account entry
+    * param: label  - arbitrary note
+    */
     virtual void addRow(const std::string &label) = 0;
+    // TODO : don't we need deleteRow()?
+    /**
+    * brief: setLabel - set or change label of subaddress account entry
+    * param: accountIndex - major index
+    * param: label        - arbitrary note
+    */
     virtual void setLabel(uint32_t accountIndex, const std::string &label) = 0;
+    /**
+    * brief: refresh - clear subaddress account entries and create new ones from wallet cache data
+    */
     virtual void refresh() = 0;
 };
 
+/**
+* brief: MultisigState - provides an interface for multisig wallet
+*/
 struct MultisigState {
     MultisigState() : isMultisig(false), isReady(false), threshold(0), total(0) {}
 
@@ -495,6 +557,7 @@ struct MultisigState {
 };
 
 
+// TODO CONTINUE HERE
 struct DeviceProgress {
     DeviceProgress(): m_progress(0), m_indeterminate(false) {}
     DeviceProgress(double progress, bool indeterminate=false): m_progress(progress), m_indeterminate(indeterminate) {}
