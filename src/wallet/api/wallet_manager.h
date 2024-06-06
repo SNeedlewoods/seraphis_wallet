@@ -38,44 +38,16 @@ namespace Monero {
 class WalletManagerImpl : public WalletManager
 {
 public:
-    Wallet * createWallet(const std::string &path, const std::string &password,
-                          const std::string &language, NetworkType nettype, uint64_t kdf_rounds = 1) override;
+    Wallet * createWallet(const std::string &path, const std::string &password, const std::string &language, NetworkType nettype, uint64_t kdf_rounds = 1) override;
     Wallet * openWallet(const std::string &path, const std::string &password, NetworkType nettype, uint64_t kdf_rounds = 1, WalletListener * listener = nullptr) override;
-    virtual Wallet * recoveryWallet(const std::string &path,
-                                       const std::string &password,
-                                       const std::string &mnemonic,
-                                       NetworkType nettype,
-                                       uint64_t restoreHeight,
-                                       uint64_t kdf_rounds = 1,
-                                       const std::string &seed_offset = {}) override;
-    virtual Wallet * createWalletFromKeys(const std::string &path,
-                                             const std::string &password,
-                                             const std::string &language,
-                                             NetworkType nettype,
-                                             uint64_t restoreHeight,
-                                             const std::string &addressString,
-                                             const std::string &viewKeyString,
-                                             const std::string &spendKeyString = "",
-                                             uint64_t kdf_rounds = 1) override;
-    // next two methods are deprecated - use the above version which allow setting of a password
-    virtual Wallet * recoveryWallet(const std::string &path, const std::string &mnemonic, NetworkType nettype, uint64_t restoreHeight) override;
-    // deprecated: use createWalletFromKeys(..., password, ...) instead
-    virtual Wallet * createWalletFromKeys(const std::string &path, 
-                                                    const std::string &language,
-                                                    NetworkType nettype, 
-                                                    uint64_t restoreHeight,
-                                                    const std::string &addressString,
-                                                    const std::string &viewKeyString,
-                                                    const std::string &spendKeyString = "") override;
-    virtual Wallet * createWalletFromDevice(const std::string &path,
-                                            const std::string &password,
-                                            NetworkType nettype,
-                                            const std::string &deviceName,
-                                            uint64_t restoreHeight = 0,
-                                            const std::string &subaddressLookahead = "",
-                                            uint64_t kdf_rounds = 1,
-                                            WalletListener * listener = nullptr) override;
-    virtual bool closeWallet(Wallet *wallet, bool store = true) override;
+    Wallet * recoveryWallet(const std::string &path, const std::string &password, const std::string &mnemonic, NetworkType nettype, uint64_t restoreHeight, uint64_t kdf_rounds = 1, const std::string &seed_offset = {}) override;
+    Wallet * recoveryWallet(const std::string &path, const std::string &mnemonic, NetworkType nettype, uint64_t restoreHeight) override // DEPRECATED
+    { return recoveryWallet(path, "", mnemonic, nettype, restoreHeight); }
+    Wallet * createWalletFromKeys(const std::string &path, const std::string &password, const std::string &language, NetworkType nettype, uint64_t restoreHeight, const std::string &addressString, const std::string &viewKeyString, const std::string &spendKeyString = "", uint64_t kdf_rounds = 1) override;
+    Wallet * createWalletFromKeys(const std::string &path, const std::string &language, NetworkType nettype, uint64_t restoreHeight, const std::string &addressString, const std::string &viewKeyString, const std::string &spendKeyString = "") override // DEPRECATED
+    { return createWalletFromKeys(path, "", language, nettype, restoreHeight, addressString, viewKeyString, spendKeyString); }
+    Wallet * createWalletFromDevice(const std::string &path, const std::string &password, NetworkType nettype, const std::string &deviceName, uint64_t restoreHeight = 0, const std::string &subaddressLookahead = "", uint64_t kdf_rounds = 1, WalletListener * listener = nullptr) override;
+    bool closeWallet(Wallet *wallet, bool store = true) override;
     bool walletExists(const std::string &path) override;
     bool verifyWalletPassword(const std::string &keys_file_name, const std::string &password, bool no_spend_key, uint64_t kdf_rounds = 1) const override;
     bool queryWalletDevice(Wallet::Device& device_type, const std::string &keys_file_name, const std::string &password, uint64_t kdf_rounds = 1) const override;

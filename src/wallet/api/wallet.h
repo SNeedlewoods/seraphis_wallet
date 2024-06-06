@@ -293,16 +293,17 @@ public:
 
 
 private:
+    // TODO NEXT: comments & order
     void clearStatus() const;
-    void setStatusError(const std::string& message) const;
-    void setStatusCritical(const std::string& message) const;
-    void setStatus(int status, const std::string& message) const;
+    void setStatusError(const std::string &message) const;
+    void setStatusCritical(const std::string &message) const;
+    void setStatus(int status, const std::string &message) const;
     void refreshThreadFunc();
     void doRefresh();
     bool daemonSynced() const;
     void stopRefresh();
     bool isNewWallet() const;
-    void pendingTxPostProcess(PendingTransactionImpl * pending);
+    void pendingTxPostProcess(PendingTransactionImpl *pending);
     bool doInit(const std::string &daemon_address, const std::string &proxy_address, uint64_t upper_transaction_size_limit = 0, bool ssl = false);
 
 private:

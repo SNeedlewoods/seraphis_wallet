@@ -71,35 +71,20 @@ Wallet *WalletManagerImpl::openWallet(const std::string &path, const std::string
     }
 
     wallet->open(path, password);
+    // TODO : should we do this here or in wallet->open()?
+    //        and no matter where it belongs, shouldn't we also refresh history, subaddress and subaddressAccount?
     //Refresh addressBook
     wallet->addressBook()->refresh(); 
     return wallet;
 }
 
-Wallet *WalletManagerImpl::recoveryWallet(const std::string &path, const std::string &mnemonic, NetworkType nettype, uint64_t restoreHeight)
-{
-    return recoveryWallet(path, "", mnemonic, nettype, restoreHeight);
-}
-
-Wallet *WalletManagerImpl::createWalletFromKeys(const std::string &path,
-                                                const std::string &language,
-                                                NetworkType nettype,
-                                                uint64_t restoreHeight,
-                                                const std::string &addressString,
-                                                const std::string &viewKeyString,
-                                                const std::string &spendKeyString)
-{
-    return createWalletFromKeys(path, "", language, nettype, restoreHeight,
-                                addressString, viewKeyString, spendKeyString);
-}
-
 Wallet *WalletManagerImpl::recoveryWallet(const std::string &path,
-                                                const std::string &password,
-                                                const std::string &mnemonic,
-                                                NetworkType nettype,
-                                                uint64_t restoreHeight,
-                                                uint64_t kdf_rounds,
-                                                const std::string &seed_offset/* = {}*/)
+                                        const std::string &password,
+                                        const std::string &mnemonic,
+                                        NetworkType nettype,
+                                        uint64_t restoreHeight,
+                                        uint64_t kdf_rounds,
+                                        const std::string &seed_offset/* = {}*/)
 {
     WalletImpl * wallet = new WalletImpl(nettype, kdf_rounds);
     if(restoreHeight > 0){
@@ -347,6 +332,12 @@ std::string WalletManagerImpl::resolveOpenAlias(const std::string &address, bool
     return addresses.front();
 }
 
+bool WalletManagerImpl::setProxy(const std::string &address)
+{
+    return m_http_client.set_proxy(address);
+}
+
+// Static
 std::tuple<bool, std::string, std::string, std::string, std::string> WalletManager::checkUpdates(
     const std::string &software,
     std::string subdir,
@@ -378,11 +369,6 @@ std::tuple<bool, std::string, std::string, std::string, std::string> WalletManag
       return std::make_tuple(true, version, hash, user_url, auto_url);
     }
     return std::make_tuple(false, "", "", "", "");
-}
-
-bool WalletManagerImpl::setProxy(const std::string &address)
-{
-    return m_http_client.set_proxy(address);
 }
 
 ///////////////////// WalletManagerFactory implementation //////////////////////
