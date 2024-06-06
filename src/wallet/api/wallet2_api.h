@@ -557,10 +557,14 @@ struct MultisigState {
 };
 
 
-// TODO CONTINUE HERE
+/**
+* brief: DeviceProgress - provides functions to get device progress
+*/
 struct DeviceProgress {
     DeviceProgress(): m_progress(0), m_indeterminate(false) {}
     DeviceProgress(double progress, bool indeterminate=false): m_progress(progress), m_indeterminate(indeterminate) {}
+    // TODO : other structs in this file have a virtual destructor, do we need one here?
+//    virtual ~DeviceProgress() = 0;
 
     virtual double progress() const { return m_progress; }
     virtual bool indeterminate() const { return m_indeterminate; }
@@ -571,86 +575,89 @@ protected:
 };
 
 struct Wallet;
+/**
+* brief: WalletListener - wallet callback functions, need to be implemented by API user
+*/
 struct WalletListener
 {
     virtual ~WalletListener() = 0;
     /**
-     * @brief moneySpent - called when money spent
-     * @param txId       - transaction id
-     * @param amount     - amount
-     */
+    * brief: moneySpent - called when money spent
+    * param: txId   - transaction id
+    * param: amount - amount spent
+    */
     virtual void moneySpent(const std::string &txId, uint64_t amount) = 0;
-
     /**
-     * @brief moneyReceived - called when money received
-     * @param txId          - transaction id
-     * @param amount        - amount
-     */
+    * brief: moneyReceived - called when money received
+    * param: txId   - transaction id
+    * param: amount - amount received
+    */
     virtual void moneyReceived(const std::string &txId, uint64_t amount) = 0;
-    
-   /**
-    * @brief unconfirmedMoneyReceived - called when payment arrived in tx pool
-    * @param txId          - transaction id
-    * @param amount        - amount
+    /**
+    * brief: unconfirmedMoneyReceived - called when payment arrived in tx pool
+    * param: txId   - transaction id
+    * param: amount - payment amount
     */
     virtual void unconfirmedMoneyReceived(const std::string &txId, uint64_t amount) = 0;
-
     /**
-     * @brief newBlock      - called when new block received
-     * @param height        - block height
-     */
+    * brief: newBlock - called when new block received
+    * param: height - block height
+    */
     virtual void newBlock(uint64_t height) = 0;
-
     /**
-     * @brief updated  - generic callback, called when any event (sent/received/block reveived/etc) happened with the wallet;
-     */
+    * brief: updated - generic callback, called when any event (sent/received/block reveived/etc) happened with the wallet
+    */
     virtual void updated() = 0;
-
-
     /**
-     * @brief refreshed - called when wallet refreshed by background thread or explicitly refreshed by calling "refresh" synchronously
-     */
+    * brief: refreshed - called when wallet refreshed by background thread or explicitly refreshed by calling "refresh" synchronously
+    */
     virtual void refreshed() = 0;
-
     /**
-     * @brief called by device if the action is required
-     */
+    * brief: onDeviceButtonRequest - called by device if the action is required
+    * param: code - button id // TODO : try to confirm this
+    */
     virtual void onDeviceButtonRequest(uint64_t code) { (void)code; }
-
+    // TODO : confirm which of the comments is wrong and delete it
+    //        I assume there are devices with more than one button
+    //        therefore I think the function above is to determine which button was pressed
     /**
-     * @brief called by device if the button was pressed
-     */
+    * brief: onDeviceButtonPressed - called by device if the button was pressed
+    */
+    /**
+    * brief: onDeviceButtonPressed - called by device if any button was pressed
+    */
     virtual void onDeviceButtonPressed() { }
-
     /**
-     * @brief called by device when PIN is needed
-     */
-    virtual optional<std::string> onDevicePinRequest() {
-        throw std::runtime_error("Not supported");
-    }
-
+    * brief: onDevicePinRequest - called by device when PIN is needed
+    */
+    // TODO : why we throw here but not on other device functions?
+    virtual optional<std::string> onDevicePinRequest()
+    { throw std::runtime_error("Not supported"); }
     /**
-     * @brief called by device when passphrase entry is needed
-     */
+    * brief: onDevicePassphraseRequest - called by device when passphrase entry is needed
+    * outparam: on_device - true if password needs to be entered on the device
+    * return: passphrase if succeeded, else boost::none
+    */
     virtual optional<std::string> onDevicePassphraseRequest(bool & on_device) {
         on_device = true;
         return optional<std::string>();
     }
-
     /**
-     * @brief Signalizes device operation progress
-     */
+    * brief: onDeviceProgress - signalize device operation progress
+    * param: event -
+    */
     virtual void onDeviceProgress(const DeviceProgress & event) { (void)event; };
-
     /**
-     * @brief If the listener is created before the wallet this enables to set created wallet object
-     */
+    * brief: onSetWallet - if the listener is created before the wallet this enables to set created wallet object
+    * param: wallet - wallet object responsibile for the callbacks
+    */
     virtual void onSetWallet(Wallet * wallet) { (void)wallet; };
 };
 
 
 /**
-* brief: Interface for wallet operations. Implementation can be found in `src/wallet/api/wallet[.h/.cpp]`.
+* brief: Wallet - interface for wallet operations
+*                 implementation can be found in `src/wallet/api/wallet[.h/.cpp]`
 */
 struct Wallet
 {
@@ -726,7 +733,6 @@ struct Wallet
     * return: true if succeeded
     * note: sets status error on fail
     */
-    // TODO : figure out why we use `{ (void)pin; return false; }` instead of `= 0` here
     virtual bool setDevicePin(const std::string &pin) { (void)pin; return false; };
     /**
     * brief: setDevicePassphrase -
@@ -734,7 +740,6 @@ struct Wallet
     * return: true if succeeded
     * note: sets status error on fail
     */
-    // TODO : figure out why we use `{ (void)passphrase; return false; }` instead of `= 0` here
     virtual bool setDevicePassphrase(const std::string &passphrase) { (void)passphrase; return false; };
     /**
     * brief: address      - get subaddress
@@ -1731,6 +1736,7 @@ struct Wallet
     static void error(const std::string &category, const std::string &str);
 };
 
+// TODO CONTINUE HERE
 /**
  * @brief WalletManager - provides functions to manage wallets
  */

@@ -119,6 +119,14 @@ namespace {
     }
 }
 
+// TODO :
+// I assume this will be tricky
+// - Wallet2CallbackImpl inherits from i_wallet2_callback object
+// - WalletImpl has Wallet2CallbackImpl and wallet2 object
+// - WalletImpl sets wallet2s' callback to Wallet2CallbackImpl
+// - Wallet2CallbackImpl has WalletListener object
+// - so if WalletImpl calls a wallet2 function which calls a callback,
+//   that callback gets propagated through Wallet2CallbackImpl until it reaches WalletListener
 struct Wallet2CallbackImpl : public tools::i_wallet2_callback
 {
 
@@ -156,6 +164,9 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
             }
         }
     }
+
+    // TODO : this is part of i_wallet2_callback, so add it here
+//    virtual void on_reorg(uint64_t height, uint64_t blocks_detached, size_t transfers_detached) {}
 
     virtual void on_money_received(uint64_t height, const crypto::hash &txid, const cryptonote::transaction& tx, uint64_t amount, uint64_t burnt, const cryptonote::subaddress_index& subaddr_index, bool is_change, uint64_t unlock_time)
     {
@@ -212,6 +223,9 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
         // TODO;
     }
 
+    // TODO : this is part of i_wallet2_callback, so add it here
+//    virtual boost::optional<epee::wipeable_string> on_get_password(const char *reason) { return boost::none; }
+
     virtual void on_device_button_request(uint64_t code)
     {
       if (m_listener) {
@@ -256,6 +270,9 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
         m_listener->onDeviceProgress(DeviceProgress(event.progress(), event.indeterminate()));
       }
     }
+
+    // TODO : this is part of i_wallet2_callback, so add it here
+//    virtual void on_pool_tx_removed(const crypto::hash &txid) {}
 
     WalletListener * m_listener;
     WalletImpl     * m_wallet;
