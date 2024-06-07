@@ -556,7 +556,6 @@ struct MultisigState {
     uint32_t total;
 };
 
-
 /**
 * brief: DeviceProgress - provides functions to get device progress
 */

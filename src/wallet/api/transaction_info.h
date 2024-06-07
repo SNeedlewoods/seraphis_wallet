@@ -52,13 +52,12 @@ public:
     std::set<uint32_t> subaddrIndex() const override;
     uint32_t subaddrAccount() const override;
     std::string label() const override;
-
+    uint64_t confirmations() const override;
+    uint64_t unlockTime() const override;
     std::string hash() const override;
     std::time_t timestamp() const override;
     std::string paymentId() const override;
     const std::vector<Transfer> &transfers() const override;
-    uint64_t confirmations() const override;
-    uint64_t unlockTime() const override;
 
 private:
     int         m_direction;
