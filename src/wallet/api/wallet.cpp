@@ -269,6 +269,7 @@ Wallet::~Wallet() {}
 WalletListener::~WalletListener() {}
 
 
+// TODO : block seperator "static"?
 string Wallet::displayAmount(uint64_t amount)
 {
     return cryptonote::print_money(amount);
@@ -439,6 +440,7 @@ WalletImpl::~WalletImpl()
     LOG_PRINT_L1(__FUNCTION__ << " finished");
 }
 
+// TODO : block seperator "override"?
 std::string WalletImpl::seed(const std::string& seed_offset) const
 {
     epee::wipeable_string seed;
@@ -854,7 +856,6 @@ bool WalletImpl::recoverFromKeysWithPassword(const std::string &path,
            setSeedLanguage(language);
            LOG_PRINT_L1("Generated deterministic wallet from spend key with seed language: " + language);
         }
-        
     }
     catch (const std::exception& e) {
         setStatusError(string(tr("failed to generate new wallet: ")) + e.what());
@@ -2252,6 +2253,7 @@ uint64_t WalletImpl::getBytesSent()
 
 
 
+// TODO : block seperator "multisig"?
 MultisigState WalletImpl::multisig() const {
     MultisigState state;
     state.isMultisig = m_wallet->multisig(&state.isReady, &state.threshold, &state.total);
@@ -2434,6 +2436,7 @@ bool WalletImpl::verifyMessageWithPublicKey(const std::string &message, const st
 
 
 
+// TODO : block seperator "private"?
 void WalletImpl::clearStatus() const
 {
     boost::lock_guard<boost::mutex> l(m_statusMutex);

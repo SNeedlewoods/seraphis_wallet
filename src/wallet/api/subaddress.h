@@ -45,6 +45,7 @@ public:
     void refresh(uint32_t accountIndex) override;
 
 private:
+    // delete all subaddress entries
     void clearRows();
     
 private:

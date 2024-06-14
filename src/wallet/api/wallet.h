@@ -55,6 +55,7 @@ class WalletImpl : public Wallet
 public:
     WalletImpl(NetworkType nettype = MAINNET, uint64_t kdf_rounds = 1);
     ~WalletImpl();
+// TODO : block seperator "override"?
     std::string seed(const std::string& seed_offset = "") const override;
     std::string getSeedLanguage() const override;
     void setSeedLanguage(const std::string &arg) override;
@@ -130,7 +131,7 @@ public:
     bool refresh() override;
     void refreshAsync() override;
     bool rescanBlockchain() override;
-    void rescanBlockchainAsync() override;    
+    void rescanBlockchainAsync() override;
     void setAutoRefreshInterval(int millis) override;
     int autoRefreshInterval() const override;
     void addSubaddressAccount(const std::string& label) override;
@@ -206,10 +207,11 @@ public:
     virtual uint64_t getBytesReceived() override;
     virtual uint64_t getBytesSent() override;
 
+// TODO : block seperator "definitions"?
     NetworkType nettype() const override {return static_cast<NetworkType>(m_wallet->nettype());}
     uint64_t getRefreshFromBlockHeight() const override { return m_wallet->get_refresh_from_block_height(); };
 
-    // Multisig
+// TODO : block seperator "multisig"?
     MultisigState multisig() const override;
     std::string getMultisigInfo() const override;
     std::string makeMultisig(const std::vector<std::string>& info, uint32_t threshold) override;
@@ -223,21 +225,61 @@ public:
 
 
 private:
+    /**
+    * brief: clearStatus - clear m_status and m_errorString
+    */
     void clearStatus() const;
-    void setStatusError(const std::string& message) const;
-    void setStatusCritical(const std::string& message) const;
-    void setStatus(int status, const std::string& message) const;
+    /**
+    * brief: setStatusError - set m_status to Status_Error and m_errorString to message
+    * param: message - error message
+    */
+    void setStatusError(const std::string &message) const;
+    /**
+    * brief: setStatusCritical - set m_status to Status_Critical and m_errorString to message
+    * param: message - error message
+    */
+    void setStatusCritical(const std::string &message) const;
+    /**
+    * brief: setStatus - set m_status to status and m_errorString to message
+    * param: status - status code (Status_Ok | Status_Error | Status_Critical)
+    * param: message - error message
+    */
+    void setStatus(int status, const std::string &message) const;
+    /**
+    * brief: refreshThreadFunc - start refresh thread (`WalletImpl()` sets `m_refreshThread` to this)
+    */
     void refreshThreadFunc();
+    /**
+    * brief: doRefresh - refresh wallet
+    */
     void doRefresh();
+    /**
+    * brief: daemonSynced -
+    * return: true if daemon is synced with the network
+    */
     bool daemonSynced() const;
+    /**
+    * brief: stopRefresh - stop and join refresh thread
+    */
     void stopRefresh();
+    /**
+    * brief: isNewWallet -
+    * return: true if wallet is new (has not been connected to daemon before)
+    */
     bool isNewWallet() const;
-    void pendingTxPostProcess(PendingTransactionImpl * pending);
+    /**
+    * brief: pendingTxPostProcess - try cold sign pending transactions
+    */
+    void pendingTxPostProcess(PendingTransactionImpl *pending);
+    /**
+    * brief: doInit - connect wallet to daemon
+    * return: true if succeeded
+    */
     bool doInit(const std::string &daemon_address, const std::string &proxy_address, uint64_t upper_transaction_size_limit = 0, bool ssl = false);
 
 private:
     friend class PendingTransactionImpl;
-    friend class UnsignedTransactionImpl;    
+    friend class UnsignedTransactionImpl;
     friend class TransactionHistoryImpl;
     friend struct Wallet2CallbackImpl;
     friend class AddressBookImpl;

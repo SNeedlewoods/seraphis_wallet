@@ -38,7 +38,7 @@
 #include <vector>
 
 namespace Monero {
-  
+
 AddressBook::~AddressBook() {}
   
 AddressBookImpl::AddressBookImpl(WalletImpl *wallet)

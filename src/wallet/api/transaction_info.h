@@ -41,14 +41,11 @@ class TransactionInfoImpl : public TransactionInfo
 public:
     TransactionInfoImpl();
     ~TransactionInfoImpl();
-    //! in/out
     virtual int direction() const override;
-    //! true if hold
     virtual bool isPending() const override;
     virtual bool isFailed() const override;
     virtual bool isCoinbase() const override;
     virtual uint64_t amount() const override;
-    //! always 0 for incoming txes
     virtual uint64_t fee() const override;
     virtual uint64_t blockHeight() const override;
     virtual std::string description() const override;

@@ -46,15 +46,17 @@ public:
     bool deleteRow(std::size_t rowId) override;
     bool setDescription(std::size_t index, const std::string &description) override;
     void refresh() override;
-     
-    // Error codes. See AddressBook:ErrorCode enum in wallet2_api.h
+
+    // for error codes, see `AddressBook:ErrorCode` enum in wallet2_api.h
     std::string errorString() const override {return m_errorString;}
     int errorCode() const override {return m_errorCode;}
 
-    int lookupPaymentID(const std::string &payment_id) const override;
+    int lookupPaymentID(const std::string &payment_id) const override; // OBSOLETE
     
 private:
+    // delete all address book entries
     void clearRows();
+    // clear `m_errorCode` and `m_errorString`
     void clearStatus();
     
 private:

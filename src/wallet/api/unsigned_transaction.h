@@ -56,7 +56,14 @@ public:
     bool sign(const std::string &signedFileName) override;
 
 private:
-    // Callback function to check all loaded tx's and generate confirmationMessage
+    /**
+    * brief: checkLoadedTx - callback function to check all loaded tx's and generate confirmationMessage
+    * param: get_num_txes -
+    * param: get_tx -
+    * param: extra_message -
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
     bool checkLoadedTx(const std::function<size_t()> get_num_txes, const std::function<const tools::wallet2::tx_construction_data&(size_t)> &get_tx, const std::string &extra_message);
     
     friend class WalletImpl;
