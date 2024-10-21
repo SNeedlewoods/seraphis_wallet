@@ -64,7 +64,7 @@ public:
     virtual uint64_t unlockTime() const override;
 
     std::uint64_t receivedChangeAmount() const override;
-    int txState() const override;
+    TxState txState() const override;
     bool isDoubleSpendSeen() const override;
 
 private:
@@ -87,8 +87,8 @@ private:
     uint64_t    m_unlock_time;
     // received change amount from outgoing transaction
     std::uint64_t m_change;
-    // enum TxState
-    int m_tx_state;
+    // tx state : pending / pending_in_pool / failed / confirmed
+    TxState m_tx_state;
     // is double spend seen
     bool m_double_spend_seen;
 

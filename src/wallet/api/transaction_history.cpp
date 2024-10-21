@@ -241,7 +241,7 @@ void TransactionHistoryImpl::refresh()
         ti->m_confirmations = 0;
         ti->m_unlock_time = pd.m_tx.unlock_time;
         ti->m_change = pd.m_change;
-        ti->m_tx_state = pd.m_state;
+        ti->m_tx_state = (TransactionInfo::TxState) pd.m_state;
         // not used for unconfirmed_transfer_details
         ti->m_double_spend_seen = false;
         for (const auto &d : pd.m_dests)
