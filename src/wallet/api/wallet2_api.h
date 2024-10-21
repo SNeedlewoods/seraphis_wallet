@@ -1330,19 +1330,15 @@ struct Wallet
     * param: unsigned_tx_str - encrypted hex string
     * outparam: exported_txs -
     * return: true if succeeded
-    * note: sets status error on fail
     */
     virtual bool parseUnsignedTxFromStr(const std::string &unsigned_tx_str, UnsignedTransaction &exported_txs) const = 0;
-    // TODO : if it's fine to drop the accept_func, do it for all the functions below (where possible, meaning accept_func is optional in wallet2 params)
-// TODO : accept_func with wallet2::signed_tx_set
     /**
     * brief: parseTxFromStr - get transactions from encrypted signed transaction as hex string
     * param: signed_tx_str -
     * outparam: ptx -
-    * param: accept_func - callback function to verify the transaction
     * return: true if succeeded
     */
-//    virtual bool parseTxFromStr(const std::string &signed_tx_str, PendingTransaction &ptx, std::function<bool(const signed_tx_set &)> accept_func) const = 0;
+    virtual bool parseTxFromStr(const std::string &signed_tx_str, PendingTransaction &ptx) const = 0;
     /**
     * brief: parseMultisigTxFromStr - get pending multisig transaction from encrypted unsigned multisig transaction as hex string
     * param: multisig_tx_str -
@@ -1351,23 +1347,6 @@ struct Wallet
     * note: sets status error on fail
     */
     virtual bool parseMultisigTxFromStr(const std::string &multisig_tx_str, PendingTransaction &exported_txs) const = 0;
-// TODO : accept_func with wallet2::multisig_tx_set
-    /**
-    * brief: loadMultisigTxFromFile - load a multisig transaction set from a file
-    * param: multisig_tx_str -
-    * outparam: exported_txs -
-    * return: true if succeeded
-    */
-//    virtual bool loadMultisigTxFromFile(const std::string &filename, PendingTransaction &exported_txs, std::function<bool(const multisig_tx_set&)> accept_func) const = 0;
-// TODO : accept_func with wallet2::multisig_tx_set
-    /**
-    * brief: signMultisigTxFromFile - load a multisig transaction set from a file, sign it and store to a file
-    * param: filename - load from and store to file with this filename
-    * outparam: txids - transaction ids of signed transactions
-    * param: accept_func - callback function to verify the transaction
-    * return: true if succeeded
-    */
-//    virutal bool signMultisigTxFromFile(const std::string &filename, std::vector<crypto::hash> &txids, std::function<bool(const multisig_tx_set&)> accept_func) const = 0;
     /**
     * brief: getFeeMultiplier -
     * param: priority -

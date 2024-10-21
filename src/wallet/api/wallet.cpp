@@ -1161,8 +1161,7 @@ bool WalletImpl::submitTransaction(const string &fileName) {
     return false;
   std::unique_ptr<PendingTransactionImpl> transaction(new PendingTransactionImpl(*this));
 
-  PendingTransaction *ptx_interface = dynamic_cast<PendingTransaction*>(transaction.get());
-  bool r = loadTx(fileName, *ptx_interface);
+  bool r = m_wallet->load_tx(fileName, transaction->m_pending_tx);
   if (!r) {
     setStatus(Status_Ok, tr("Failed to load transaction from file"));
     return false;
@@ -3184,12 +3183,13 @@ std::string WalletImpl::convertTxToStr(const PendingTransaction &ptxs) const
 bool WalletImpl::parseUnsignedTxFromStr(const std::string &unsigned_tx_str, UnsignedTransaction &exported_txs) const
 {
     UnsignedTransactionImpl *utx_impl = dynamic_cast<UnsignedTransactionImpl*>(&exported_txs);
-    if (!m_wallet->parse_unsigned_tx_from_str(unsigned_tx_str, utx_impl->m_unsigned_tx_set))
-    {
-        setStatusError(tr("Failed to parse unsigned tx from string. For more info see log file"));
-        return false;
-    }
-    return true;
+    return m_wallet->parse_unsigned_tx_from_str(unsigned_tx_str, utx_impl->m_unsigned_tx_set);
+}
+//-------------------------------------------------------------------------------------------------------------------
+bool WalletImpl::parseTxFromStr(const std::string &signed_tx_str, PendingTransaction &ptx) const
+{
+    PendingTransactionImpl *ptx_impl = dynamic_cast<PendingTransactionImpl*>(&ptx);
+    return m_wallet->parse_tx_from_str(signed_tx_str, ptx_impl->m_pending_tx, NULL);
 }
 //-------------------------------------------------------------------------------------------------------------------
 bool WalletImpl::parseMultisigTxFromStr(const std::string &multisig_tx_str, PendingTransaction &exported_txs) const
@@ -3218,33 +3218,6 @@ bool WalletImpl::parseMultisigTxFromStr(const std::string &multisig_tx_str, Pend
 
     return false;
 }
-//-------------------------------------------------------------------------------------------------------------------
-//bool loadMultisigTxFromFile(const std::string &filename, PendingTransaction &exported_txs, std::function<bool(const PendingTransaction&)> accept_func)
-//{
-//    clearStatus();
-//
-//    try
-//    {
-//        checkMultisigWalletReady(m_wallet);
-//
-//        tools::wallet2::multisig_tx_set multisig_tx;
-//
-//        // QUESTION / TODO : How to translate the accept_func?
-//        if (!m_wallet->load_multisig_tx_from_file(filename, multisig_tx, accept_func))
-//            throw runtime_error(tr("Failed to load multisig transaction from file."));
-//
-//        exported_txs.m_pending_tx = multisig_tx.m_ptx;
-//        exported_txs.m_signers = multisig_tx.m_signers;
-//
-//        return true;
-//    }
-//    catch (const exception &e)
-//    {
-//        setStatusError(e.what());
-//    }
-//
-//    return false;
-//}
 //-------------------------------------------------------------------------------------------------------------------
 std::uint64_t WalletImpl::getFeeMultiplier(std::uint32_t priority, int fee_algorithm) const
 {
