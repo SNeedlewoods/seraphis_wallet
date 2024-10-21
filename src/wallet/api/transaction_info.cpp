@@ -154,7 +154,7 @@ std::uint64_t TransactionInfoImpl::receivedChangeAmount() const
     return m_change;
 }
 
-int TransactionInfoImpl::txState() const
+TransactionInfo::TxState TransactionInfoImpl::txState() const
 {
     return m_tx_state;
 }

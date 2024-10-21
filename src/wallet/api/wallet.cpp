@@ -506,6 +506,8 @@ bool WalletImpl::create(const std::string &path, const std::string &password, co
         return false;
     }
     setSeedLanguage(language);
+    if (!statusOk())
+        return false;
     crypto::secret_key recovery_val, secret_key;
     try {
         recovery_val = m_wallet->generate(path, password, secret_key, false, false);
@@ -681,6 +683,8 @@ bool WalletImpl::recoverFromKeysWithPassword(const std::string &path,
         if(has_spendkey && !has_viewkey) {
            m_wallet->generate(path, password, spendkey, true, false);
            setSeedLanguage(language);
+           if (!statusOk())
+               return false;
            LOG_PRINT_L1("Generated deterministic wallet from spend key with seed language: " + language);
         }
         
@@ -737,7 +741,7 @@ bool WalletImpl::open(const std::string &path, const std::string &password)
         LOG_ERROR("Error opening wallet: " << e.what());
         setStatusCritical(e.what());
     }
-    return status() == Status_Ok;
+    return statusOk();
 }
 
 bool WalletImpl::recover(const std::string &path, const std::string &seed)
@@ -773,12 +777,14 @@ bool WalletImpl::recover(const std::string &path, const std::string &password, c
 
     try {
         setSeedLanguage(old_language);
+        if (!statusOk())
+            return false;
         m_wallet->generate(path, password, recovery_key, true, false);
 
     } catch (const std::exception &e) {
         setStatusCritical(e.what());
     }
-    return status() == Status_Ok;
+    return statusOk();
 }
 
 bool WalletImpl::close(bool do_store)
@@ -864,7 +870,7 @@ bool WalletImpl::setPassword(const std::string &password)
     } catch (const std::exception &e) {
         setStatusError(e.what());
     }
-    return status() == Status_Ok;
+    return statusOk();
 }
 
 const std::string& WalletImpl::getPassword() const
@@ -880,7 +886,7 @@ bool WalletImpl::setDevicePin(const std::string &pin)
     } catch (const std::exception &e) {
         setStatusError(e.what());
     }
-    return status() == Status_Ok;
+    return statusOk();
 }
 
 bool WalletImpl::setDevicePassphrase(const std::string &passphrase)
@@ -891,7 +897,7 @@ bool WalletImpl::setDevicePassphrase(const std::string &passphrase)
     } catch (const std::exception &e) {
         setStatusError(e.what());
     }
-    return status() == Status_Ok;
+    return statusOk();
 }
 
 std::string WalletImpl::address(uint32_t accountIndex, uint32_t addressIndex) const
@@ -1084,7 +1090,7 @@ bool WalletImpl::refresh()
     //TODO: make doRefresh return bool to know whether the error occured during refresh or not
     //otherwise one may try, say, to send transaction, transfer fails and this method returns false
     doRefresh();
-    return status() == Status_Ok;
+    return statusOk();
 }
 
 void WalletImpl::refreshAsync()
@@ -1101,7 +1107,7 @@ bool WalletImpl::rescanBlockchain()
     clearStatus();
     m_refreshShouldRescan = true;
     doRefresh();
-    return status() == Status_Ok;
+    return statusOk();
 }
 
 void WalletImpl::rescanBlockchainAsync()
@@ -1276,7 +1282,7 @@ bool WalletImpl::importOutputs(const string &filename)
     try
     {
         size_t n_outputs = importEnotesFromStr(data);
-        if (status() != Status_Ok)
+        if (!statusOk())
             throw runtime_error(errorString());
         LOG_PRINT_L2(std::to_string(n_outputs) << " outputs imported");
     }
@@ -1644,10 +1650,8 @@ PendingTransaction *WalletImpl::createTransactionMultDest(const std::vector<stri
     PendingTransactionImpl * transaction = new PendingTransactionImpl(*this);
 
     uint32_t adjusted_priority = adjustPriority(static_cast<uint32_t>(priority));
-    if (status() != Status_Ok)
-    {
+    if (!statusOk())
         return transaction;
-    }
 
     do {
         if (checkBackgroundSync("cannot create transactions"))
@@ -3188,44 +3192,6 @@ bool WalletImpl::parseUnsignedTxFromStr(const std::string &unsigned_tx_str, Unsi
     return true;
 }
 //-------------------------------------------------------------------------------------------------------------------
-std::string WalletImpl::signTxToStr(UnsignedTransaction &exported_txs, PendingTransaction &ptx) const
-{
-    clearStatus();
-
-    tools::wallet2::unsigned_tx_set &utx_set = dynamic_cast<UnsignedTransactionImpl*>(&exported_txs)->m_unsigned_tx_set;
-    PendingTransactionImpl *ptx_impl = dynamic_cast<PendingTransactionImpl*>(&ptx);
-
-    std::string signed_tx_data;
-    tools::wallet2::signed_tx_set signed_txs;
-
-    try
-    {
-        signed_tx_data = m_wallet->sign_tx_dump_to_str(utx_set, ptx_impl->m_pending_tx, signed_txs);
-    }
-    catch (const exception &e)
-    {
-        setStatusError(string(tr("Failed to sign tx: ")) + e.what());
-        return "";
-    }
-
-    ptx_impl->m_key_images = signed_txs.key_images;
-    return signed_tx_data;
-}
-//-------------------------------------------------------------------------------------------------------------------
-bool WalletImpl::loadTx(const std::string &signed_filename, PendingTransaction &ptx) const
-{
-    clearStatus();
-
-    PendingTransactionImpl *ptx_impl = dynamic_cast<PendingTransactionImpl*>(&ptx);
-
-    if (!m_wallet->load_tx(signed_filename, ptx_impl->m_pending_tx))
-    {
-        setStatusError((boost::format(tr("Failed to load tx from file with filename `%s`. For more info see log file")) % signed_filename).str());
-        return false;
-    }
-    return true;
-}
-//-------------------------------------------------------------------------------------------------------------------
 bool WalletImpl::parseMultisigTxFromStr(const std::string &multisig_tx_str, PendingTransaction &exported_txs) const
 {
     clearStatus();
@@ -3504,33 +3470,6 @@ std::vector<std::pair<std::uint64_t, std::uint64_t>> WalletImpl::estimateBacklog
     return { std::make_pair(0, 0) };
 }
 //-------------------------------------------------------------------------------------------------------------------
-std::vector<std::pair<std::uint64_t, std::uint64_t>> WalletImpl::estimateBacklog(std::uint64_t min_tx_weight, std::uint64_t max_tx_weight, const std::vector<std::uint64_t> &fees) const
-{
-    clearStatus();
-
-    if (min_tx_weight == 0 || max_tx_weight == 0)
-    {
-        setStatusError("Invalid 0 weight");
-        return { std::make_pair(0, 0) };
-    }
-    for (std::uint64_t fee: fees)
-    {
-        if (fee == 0)
-        {
-            setStatusError("Invalid 0 fee");
-            return { std::make_pair(0, 0) };
-        }
-    }
-
-    std::vector<std::pair<double, double>> fee_levels;
-    for (uint64_t fee: fees)
-    {
-        double our_fee_byte_min = fee / (double)min_tx_weight, our_fee_byte_max = fee / (double)max_tx_weight;
-        fee_levels.emplace_back(our_fee_byte_min, our_fee_byte_max);
-    }
-    return estimateBacklog(fee_levels);
-}
-//-------------------------------------------------------------------------------------------------------------------
 bool WalletImpl::saveToFile(const std::string &path_to_file, const std::string &binary, bool is_printable /* = false */) const
 {
     return m_wallet->save_to_file(path_to_file, binary, is_printable);
@@ -3710,5 +3649,12 @@ std::size_t WalletImpl::getEnoteIndex(const std::string &key_image) const
     return 0;
 }
 //-------------------------------------------------------------------------------------------------------------------
+bool WalletImpl::statusOk() const
+{
+    boost::lock_guard<boost::mutex> l(m_statusMutex);
+    return m_status == Status_Ok;
+}
+//-------------------------------------------------------------------------------------------------------------------
+
 
 } // namespace

@@ -53,7 +53,7 @@ public:
     TxProtocol protocolVersion() const override;
     bool isKeyImageKnown() const override;
     bool isKeyImageRequest() const override;
-    uint64_t pkIndex() const override;
+    std::uint64_t pkIndex() const override;
     std::vector<std::pair<std::uint64_t, std::string>> uses() const override;
 
     // Multisig
@@ -93,7 +93,7 @@ private:
     // view wallets: we want to request it; cold wallets: it was requested
     bool m_key_image_request;
     // public key index in tx_extra
-    uint64_t m_pk_index;
+    std::uint64_t m_pk_index;
     // track uses of this enote in the blockchain in the format [ [block_height, tx_id], ... ] if `wallet2::m_track_uses` is true (default is false)
     std::vector<std::pair<std::uint64_t, std::string>> m_uses;
 

@@ -84,7 +84,7 @@ bool EnoteDetailsImpl::isKeyImageKnown() const
 { return m_key_image_known; }
 bool EnoteDetailsImpl::isKeyImageRequest() const
 { return m_key_image_request; }
-uint64_t EnoteDetailsImpl::pkIndex() const
+std::uint64_t EnoteDetailsImpl::pkIndex() const
 { return m_pk_index; }
 std::vector<std::pair<std::uint64_t, std::string>> EnoteDetailsImpl::uses() const
 { return m_uses; }

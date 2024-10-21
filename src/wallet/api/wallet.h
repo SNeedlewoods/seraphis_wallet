@@ -254,8 +254,6 @@ public:
     bool saveMultisigTx(const PendingTransaction &multisig_ptx, const std::string &filename) const override;
     std::string convertTxToStr(const PendingTransaction &ptxs) const override;
     bool parseUnsignedTxFromStr(const std::string &unsigned_tx_str, UnsignedTransaction &exported_txs) const override;
-    std::string signTxToStr(UnsignedTransaction &exported_txs, PendingTransaction &ptx) const override;
-    bool loadTx(const std::string &signed_filename, PendingTransaction &ptx) const override;
     bool parseMultisigTxFromStr(const std::string &multisig_tx_str, PendingTransaction &exported_txs) const override;
     std::uint64_t getFeeMultiplier(std::uint32_t priority, int fee_algorithm) const override;
     std::uint64_t getBaseFee() const override;
@@ -271,7 +269,6 @@ public:
     std::size_t importEnotesFromStr(const std::string &enotes_str) override;
     std::uint64_t getBlockchainHeightByDate(std::uint16_t year, std::uint8_t month, std::uint8_t day) const override;
     std::vector<std::pair<std::uint64_t, std::uint64_t>> estimateBacklog(const std::vector<std::pair<double, double>> &fee_levels) const override;
-    std::vector<std::pair<std::uint64_t, std::uint64_t>> estimateBacklog(std::uint64_t min_tx_weight, std::uint64_t max_tx_weight, const std::vector<std::uint64_t> &fees) const override;
     bool saveToFile(const std::string &path_to_file, const std::string &binary, bool is_printable = false) const override;
     bool loadFromFile(const std::string &path_to_file, std::string &target_str, std::size_t max_size = 1000000000) const override;
     std::uint64_t hashEnotes(std::uint64_t enote_idx, std::string &hash) const override;
@@ -301,6 +298,11 @@ private:
     * return: enote index
     */
     std::size_t getEnoteIndex(const std::string &key_image) const;
+    /**
+    * brief: statusOk -
+    * return: true if status is ok, else false
+    */
+    bool statusOk() const;
 
 private:
     friend class PendingTransactionImpl;

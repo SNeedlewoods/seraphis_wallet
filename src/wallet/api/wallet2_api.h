@@ -96,7 +96,7 @@ struct EnoteDetails
     virtual TxProtocol protocolVersion() const = 0;
     virtual bool isKeyImageKnown() const = 0;
     virtual bool isKeyImageRequest() const = 0;
-    virtual uint64_t pkIndex() const = 0;
+    virtual std::uint64_t pkIndex() const = 0;
     virtual std::vector<std::pair<std::uint64_t, std::string>> uses() const = 0;
 
     // Multisig
@@ -246,7 +246,7 @@ struct TransactionInfo
     virtual const std::vector<Transfer> & transfers() const = 0;
 
     virtual std::uint64_t receivedChangeAmount() const = 0;
-    virtual int txState() const = 0;
+    virtual TxState txState() const = 0;
     virtual bool isDoubleSpendSeen() const = 0;
 };
 /**
@@ -1333,22 +1333,7 @@ struct Wallet
     * note: sets status error on fail
     */
     virtual bool parseUnsignedTxFromStr(const std::string &unsigned_tx_str, UnsignedTransaction &exported_txs) const = 0;
-    /**
-    * brief: signTxToStr - get a signed pending transaction from an unsigned transaction
-    * param: exported_txs - unsigned transaction
-    * outparam: ptx - signed pending transaction
-    * return: signed tx data as encrypted hex string
-    * note: sets status error on fail
-    */
-    virtual std::string signTxToStr(UnsignedTransaction &exported_txs, PendingTransaction &ptx) const = 0;
     // TODO : if it's fine to drop the accept_func, do it for all the functions below (where possible, meaning accept_func is optional in wallet2 params)
-    /**
-    * brief: loadTx - load pending transactions from a file
-    * param: signed_filename -
-    * outparam: ptx -
-    * return: true if succeeded
-    */
-    virtual bool loadTx(const std::string &signed_filename, PendingTransaction &ptx) const = 0;
 // TODO : accept_func with wallet2::signed_tx_set
     /**
     * brief: parseTxFromStr - get transactions from encrypted signed transaction as hex string
@@ -1477,18 +1462,13 @@ struct Wallet
     * note: sets status error on fail
     */
     virtual std::uint64_t getBlockchainHeightByDate(std::uint16_t year, std::uint8_t month, std::uint8_t day) const = 0;
-    // QUESTION : Can anyone help with these comments?
     /**
     * brief: estimateBacklog -
     * param: fee_levels - [ [fee per byte min, fee per byte max], ... ]
-    * param: min_tx_weight -
-    * param: max_tx_weight -
-    * param: fees -
     * return: [ [number of blocks min, number of blocks max], ... ]
     * note: sets status error on fail
     */
     virtual std::vector<std::pair<std::uint64_t, std::uint64_t>> estimateBacklog(const std::vector<std::pair<double, double>> &fee_levels) const = 0;
-    virtual std::vector<std::pair<std::uint64_t, std::uint64_t>> estimateBacklog(std::uint64_t min_tx_weight, std::uint64_t max_tx_weight, const std::vector<std::uint64_t> &fees) const = 0;
 // TODO : mms::multisig_wallet_state - from a quick search for get_multisig_wallet_state in simplewallet.cpp this will be complicated to replace
     /**
     * brief: getMultisigWalletState -
