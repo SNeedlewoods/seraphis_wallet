@@ -573,7 +573,6 @@ bool WalletImpl::createWatchOnly(const std::string &path, const std::string &pas
 
         // Export/Import key images
         // We already know the spent status from the outputs we exported, thus no need to check them again
-        // TODO : `exportKeyImages()` is only implemented to export to file, consider adding `exportKeyImagesToStr()` or something.
         auto key_images = m_wallet->export_key_images(true/*all*/);
         uint64_t spent = 0;
         uint64_t unspent = 0;

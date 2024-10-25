@@ -1407,7 +1407,7 @@ struct Wallet
     * param: tag -
     * note: sets status error on fail
     */
-    virtual void setAccountTag(const std::set<uint32_t> &account_indices, const std::string &tag) = 0;
+    virtual void setAccountTag(const std::set<std::uint32_t> &account_indices, const std::string &tag) = 0;
     /**
     * brief: setAccountTagDescription - set a description for a tag, tag must already exist
     * param: tag -
