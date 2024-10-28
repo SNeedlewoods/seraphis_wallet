@@ -3188,7 +3188,16 @@ bool WalletImpl::parseUnsignedTxFromStr(const std::string &unsigned_tx_str, Unsi
 bool WalletImpl::parseTxFromStr(const std::string &signed_tx_str, PendingTransaction &ptx) const
 {
     PendingTransactionImpl *ptx_impl = dynamic_cast<PendingTransactionImpl*>(&ptx);
-    return m_wallet->parse_tx_from_str(signed_tx_str, ptx_impl->m_pending_tx, NULL);
+    std::shared_ptr<tools::wallet2::signed_tx_set> signed_tx_set_out = std::make_shared<tools::wallet2::signed_tx_set>();
+    bool r = m_wallet->parse_tx_from_str(signed_tx_str, ptx_impl->m_pending_tx, /* accept_func = */ NULL, signed_tx_set_out.get(), /* do_handle_key_images = */ false);
+    if (r)
+        ptx_impl->m_tx_key_images = signed_tx_set_out->tx_key_images;
+    return r;
+}
+//-------------------------------------------------------------------------------------------------------------------
+void WalletImpl::insertColdKeyImages(PendingTransaction &ptx)
+{
+    m_wallet->insert_cold_key_images(dynamic_cast<PendingTransactionImpl*>(&ptx)->m_tx_key_images);
 }
 //-------------------------------------------------------------------------------------------------------------------
 bool WalletImpl::parseMultisigTxFromStr(const std::string &multisig_tx_str, PendingTransaction &exported_txs) const
@@ -3272,9 +3281,7 @@ void WalletImpl::coldSignTx(const PendingTransaction &ptx_in, PendingTransaction
         m_wallet->cold_sign_tx(ptx_impl_in->m_pending_tx, signed_txs, dsts_info, ptx_impl_out->m_tx_device_aux);
         ptx_impl_out->m_key_images = signed_txs.key_images;
         ptx_impl_out->m_pending_tx = signed_txs.ptx;
-        // TODO : figure out if we need signed_txs.tx_key_images here, afaik they're used for selfsend/change enotes
-        //        if needed we can probably add a member like `m_selfsend_key_images` to `PendingTransaction`
-        //        guess then `PendingTransaction` would be a proper replacement for `wallet2::signed_tx_set`
+        ptx_impl_out->m_tx_key_images = signed_txs.tx_key_images;
     }
     catch (const std::exception &e)
     {

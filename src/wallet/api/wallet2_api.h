@@ -1340,6 +1340,16 @@ struct Wallet
     */
     virtual bool parseTxFromStr(const std::string &signed_tx_str, PendingTransaction &ptx) const = 0;
     /**
+    * brief: insertColdKeyImages - remember cold key images for parsed tx, for when we get those txes from the blockchain
+    *                              Call:
+    *                               - parseTxFromStr()
+    *                               - accept_func() (optional)
+    *                               - importKeyImages()
+    *                               - insertColdKeyImages()
+    * param: ptx - PendingTransaction obtained from parseTxFromStr() outparam ptx
+    */
+    virtual void insertColdKeyImages(PendingTransaction &ptx) = 0;
+    /**
     * brief: parseMultisigTxFromStr - get pending multisig transaction from encrypted unsigned multisig transaction as hex string
     * param: multisig_tx_str -
     * outparam: exported_txs -
