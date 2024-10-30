@@ -39,14 +39,14 @@ using namespace epee;
 #include "common/scoped_message_writer.h"
 #include "common/util.h"
 #include "transactions_flow_test.h"
-#include "wallet_scanner.h"
+#include "wallet_api.h"
 
 namespace po = boost::program_options;
 
 namespace
 {
   const command_line::arg_descriptor<bool> arg_test_transactions_flow = {"test_transactions_flow", ""};
-  const command_line::arg_descriptor<bool> arg_wallet_scanner         = {"wallet_scanner", ""};
+  const command_line::arg_descriptor<bool> arg_wallet_api         = {"wallet_api", ""};
 
   const command_line::arg_descriptor<std::string> arg_working_folder  = {"working-folder", "", "."};
   const command_line::arg_descriptor<std::string> arg_source_wallet   = {"source-wallet",  "", "", true};
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
   command_line::add_arg(desc_options, command_line::arg_help);
 
   command_line::add_arg(desc_options, arg_test_transactions_flow);
-  command_line::add_arg(desc_options, arg_wallet_scanner);
+  command_line::add_arg(desc_options, arg_wallet_api);
 
   command_line::add_arg(desc_options, arg_working_folder);
   command_line::add_arg(desc_options, arg_source_wallet);
@@ -130,11 +130,11 @@ int main(int argc, char* argv[])
     }
   }
 
-  if (command_line::get_arg(vm, arg_wallet_scanner))
+  if (command_line::get_arg(vm, arg_wallet_api))
   {
     std::string daemon_addr = command_line::get_arg(vm, arg_daemon_addr_a);
-    test::WalletScannerTest wallet_scanner{daemon_addr};
-    if (!wallet_scanner.run())
+    test::WalletAPITest wallet_api{daemon_addr};
+    if (!wallet_api.run())
       return 1;
   }
   }

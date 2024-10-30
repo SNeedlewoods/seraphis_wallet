@@ -30,12 +30,12 @@ set(functional_tests_sources
   main.cpp
   transactions_flow_test.cpp
   transactions_generation_from_blockchain.cpp
-  wallet_scanner.cpp)
+  wallet_api.cpp)
 
 set(functional_tests_headers
   transactions_flow_test.h
   transactions_generation_from_blockchain.h
-  wallet_scanner.h)
+  wallet_api.h)
 
 monero_add_minimal_executable(functional_tests
   ${functional_tests_sources}
@@ -45,6 +45,7 @@ target_link_libraries(functional_tests
     cryptonote_basic
     cryptonote_core
     wallet
+    wallet_api
     common
     cncrypto
     epee

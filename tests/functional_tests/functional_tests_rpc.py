@@ -15,7 +15,7 @@ DEFAULT_TESTS = [
   'http_digest_auth', 'integrated_address', 'k_anonymity', 'mining', 'multisig', 'p2p', 'proofs',
   'rpc_payment', 'sign_message', 'transfer', 'txpool', 'uri', 'validate_address', 'wallet'
 ]
-CPP_TESTS = set(['wallet_scanner'])
+CPP_TESTS = set(['wallet_api'])
 
 for cpp_test in CPP_TESTS:
   DEFAULT_TESTS.append(cpp_test)

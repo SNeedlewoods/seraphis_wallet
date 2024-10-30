@@ -97,6 +97,7 @@ set(unit_tests_sources
   output_selection.cpp
   vercmp.cpp
   ringdb.cpp
+  wallet_api.cpp
   wallet_storage.cpp
   wipeable_string.cpp
   is_hdd.cpp
@@ -124,6 +125,7 @@ target_link_libraries(unit_tests
     serialization
     seraphis_crypto
     wallet
+    wallet_api
     p2p
     version
     ${Boost_CHRONO_LIBRARY}
