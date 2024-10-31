@@ -3029,10 +3029,11 @@ void WalletImpl::writeWatchOnlyWallet(const std::string &password, std::string &
     }
 }
 //-------------------------------------------------------------------------------------------------------------------
-void WalletImpl::updatePoolState(std::vector<std::tuple<cryptonote::transaction, std::string, bool>> &process_txs, bool refreshed, bool try_incremental)
+void WalletImpl::refreshPoolOnly(bool refreshed /*false*/, bool try_incremental /*false*/)
 {
     clearStatus();
 
+    // Update pool state
     std::vector<std::tuple<cryptonote::transaction, crypto::hash, bool>> process_txs_pod;
     try
     {
@@ -3045,30 +3046,13 @@ void WalletImpl::updatePoolState(std::vector<std::tuple<cryptonote::transaction,
         return;
     }
 
-    process_txs.reserve(process_txs_pod.size());
-    for (auto &tx : process_txs_pod)
-        process_txs.push_back(std::make_tuple(std::get<0>(tx), epee::string_tools::pod_to_hex(std::get<1>(tx)), std::get<2>(tx)));
-}
-//-------------------------------------------------------------------------------------------------------------------
-void WalletImpl::processPoolState(const std::vector<std::tuple<cryptonote::transaction, std::string, bool>> &txs)
-{
-    clearStatus();
+    if (process_txs_pod.empty())
+        return;
 
-    std::vector<std::tuple<cryptonote::transaction, crypto::hash, bool>> txs_pod;
-    crypto::hash tx_id;
-    for (auto &tx : txs)
-    {
-        if (!epee::string_tools::hex_to_pod(std::get<1>(tx), tx_id))
-        {
-            setStatusError(string(tr("Failed to parse tx_id: ")) + std::get<1>(tx));
-            return;
-        }
-        txs_pod.push_back(std::make_tuple(std::get<0>(tx), tx_id, std::get<2>(tx)));
-    }
-
+    // Process pool state
     try
     {
-        m_wallet->process_pool_state(txs_pod);
+        m_wallet->process_pool_state(process_txs_pod);
     }
     catch (const std::exception &e)
     {
@@ -3077,7 +3061,7 @@ void WalletImpl::processPoolState(const std::vector<std::tuple<cryptonote::trans
     }
 }
 //-------------------------------------------------------------------------------------------------------------------
-void WalletImpl::getEnoteDetails(std::vector<std::shared_ptr<EnoteDetails>> &enote_details) const
+void WalletImpl::getEnoteDetails(std::vector<std::unique_ptr<EnoteDetails>> &enote_details) const
 {
     tools::wallet2::transfer_container tc;
     m_wallet->get_transfers(tc);
@@ -3085,7 +3069,7 @@ void WalletImpl::getEnoteDetails(std::vector<std::shared_ptr<EnoteDetails>> &eno
 
     for (const auto &td : tc)
     {
-        auto ed = std::make_shared<EnoteDetailsImpl>();
+        auto ed = std::make_unique<EnoteDetailsImpl>();
 
         cryptonote::txout_target_v txout_v = td.m_tx.vout[td.m_internal_output_index].target;
         if (txout_v.type() == typeid(cryptonote::txout_to_key))
@@ -3115,7 +3099,7 @@ void WalletImpl::getEnoteDetails(std::vector<std::shared_ptr<EnoteDetails>> &eno
             ed->m_uses.push_back(std::make_pair(u.first, epee::string_tools::pod_to_hex(u.second)));
         ed->m_key_image_partial = td.m_key_image_partial;
 
-        enote_details.push_back(ed);
+        enote_details.push_back(std::move(ed));
     }
 }
 //-------------------------------------------------------------------------------------------------------------------
@@ -3610,17 +3594,20 @@ bool WalletImpl::importKeyImages(std::vector<std::string> key_images, std::size_
 //-------------------------------------------------------------------------------------------------------------------
 std::size_t WalletImpl::getEnoteIndex(const std::string &key_image) const
 {
-    std::vector<std::shared_ptr<EnoteDetails>> enote_details;
+    std::vector<std::unique_ptr<EnoteDetails>> enote_details;
     getEnoteDetails(enote_details);
     for (size_t idx = 0; idx < enote_details.size(); ++idx)
     {
-        const auto &ed = std::dynamic_pointer_cast<EnoteDetailsImpl>(enote_details[idx]);
-        if (ed->m_key_image == key_image)
+        const auto &ed = dynamic_cast<EnoteDetailsImpl &>(*enote_details[idx].get());
+        if (ed.m_key_image == key_image)
         {
-            if (ed->m_key_image_known)
+            if (ed.m_key_image_known)
                 return idx;
-            else if (ed->m_key_image_partial)
+            else if (ed.m_key_image_partial)
+            {
                 setStatusError("Failed to get enote index by key image: Enote detail lookups are not allowed for multisig partial key images");
+                return 0;
+            }
         }
     }
 

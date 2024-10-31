@@ -38,9 +38,9 @@
 #include <ctime>
 #include <iostream>
 #include <stdexcept>
+#include <memory>
 #include <cstdint>
 
-#include "cryptonote_basic/cryptonote_basic.h"
 #include "cryptonote_basic/cryptonote_basic_impl.h"
 
 //  Public interface for libwallet library
@@ -1276,33 +1276,17 @@ struct Wallet
     */
     virtual void writeWatchOnlyWallet(const std::string &password, std::string &new_keys_file_name) = 0;
     /**
-    * brief: updatePoolState -
-    * outparam: process_txs - [ [tx, tx_id, double_spend_seen], ... ]
+    * brief: refreshPoolOnly - calls wallet2 update_pool_state and process_pool_state
     * param: refreshed - (default: false)
     * param: try_incremental - (default: false)
     * note: sets status error on fail
-    * This public method is typically called to make sure that the wallet's pool state is up-to-date by
-    * clients like simplewallet and the RPC daemon. Before incremental update this was the same method
-    * that 'refresh' also used, but now it's more complicated because for the time being we support
-    * the "old" and the "new" way of updating the pool and because only the 'getblocks' call supports
-    * incremental update but we don't want any blocks here.
-    *
-    * simplewallet does NOT update the pool info during automatic refresh to avoid disturbing interactive
-    * messages and prompts. When it finally calls this method here "to catch up" so to say we can't use
-    * incremental update anymore, because with that we might miss some txs altogether.
     */
-    virtual void updatePoolState(std::vector<std::tuple<cryptonote::transaction, std::string, bool>> &process_txs, bool refreshed = false, bool try_incremental = false) = 0;
-    /**
-    * brief: processPoolState -
-    * param: txs - [ [tx, tx_id, double_spend_seen], ... ]
-    * note: sets status error on fail
-    */
-    virtual void processPoolState(const std::vector<std::tuple<cryptonote::transaction, std::string, bool>> &txs) = 0;
+    virtual void refreshPoolOnly(bool refreshed = false, bool try_incremental = false) = 0;
     /**
     * brief: getEnoteDetails - get information about all enotes
     * outparam: enote_details -
     */
-    virtual void getEnoteDetails(std::vector<std::shared_ptr<EnoteDetails>> &enote_details) const = 0;
+    virtual void getEnoteDetails(std::vector<std::unique_ptr<EnoteDetails>> &enote_details) const = 0;
     /**
     * brief: convertMultisigTxToString - get the encrypted unsigned multisig transaction as hex string from a multisig pending transaction
     * param: multisig_ptx - multisig pending transaction
