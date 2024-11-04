@@ -3252,7 +3252,7 @@ void WalletImpl::coldTxAuxImport(const PendingTransaction &ptx, const std::vecto
     }
 }
 //-------------------------------------------------------------------------------------------------------------------
-void WalletImpl::coldSignTx(const PendingTransaction &ptx_in, PendingTransaction &exported_txs_out, std::vector<cryptonote::address_parse_info> &dsts_info) const
+void WalletImpl::coldSignTx(const PendingTransaction &ptx_in, PendingTransaction &exported_txs_out) const
 {
     clearStatus();
 
@@ -3261,6 +3261,7 @@ void WalletImpl::coldSignTx(const PendingTransaction &ptx_in, PendingTransaction
         const PendingTransactionImpl *ptx_impl_in = dynamic_cast<const PendingTransactionImpl*>(&ptx_in);
         PendingTransactionImpl *ptx_impl_out = dynamic_cast<PendingTransactionImpl*>(&exported_txs_out);
         tools::wallet2::signed_tx_set signed_txs;
+        std::vector<cryptonote::address_parse_info> dsts_info;
 
         m_wallet->cold_sign_tx(ptx_impl_in->m_pending_tx, signed_txs, dsts_info, ptx_impl_out->m_tx_device_aux);
         ptx_impl_out->m_key_images = signed_txs.key_images;

@@ -260,7 +260,7 @@ public:
     std::uint64_t getBaseFee() const override;
     std::uint32_t adjustPriority(std::uint32_t priority) override;
     void coldTxAuxImport(const PendingTransaction &ptx, const std::vector<std::string> &tx_device_aux) const override;
-    void coldSignTx(const PendingTransaction &ptx_in, PendingTransaction &exported_txs_out, std::vector<cryptonote::address_parse_info> &dsts_info) const override;
+    void coldSignTx(const PendingTransaction &ptx_in, PendingTransaction &exported_txs_out) const override;
     void discardUnmixableEnotes() override;
     void setTxKey(const std::string &txid, const std::string &tx_key, const std::vector<std::string> &additional_tx_keys, const std::string &single_destination_subaddress) override;
     const std::pair<std::map<std::string, std::string>, std::vector<std::string>>& getAccountTags() const override;

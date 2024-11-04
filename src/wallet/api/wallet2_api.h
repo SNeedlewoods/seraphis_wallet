@@ -38,10 +38,11 @@
 #include <ctime>
 #include <iostream>
 #include <stdexcept>
+#include <map>
 #include <memory>
+#include <unordered_set>
 #include <cstdint>
 
-#include "cryptonote_basic/cryptonote_basic_impl.h"
 
 //  Public interface for libwallet library
 namespace Monero {
@@ -1373,9 +1374,8 @@ struct Wallet
     * brief: coldSignTx -
     * param: ptx_in -
     * outparam: exported_txs_out -
-    * param: dsts_info -
     */
-    virtual void coldSignTx(const PendingTransaction &ptx_in, PendingTransaction &exported_txs_out, std::vector<cryptonote::address_parse_info> &dsts_info) const = 0;
+    virtual void coldSignTx(const PendingTransaction &ptx_in, PendingTransaction &exported_txs_out) const = 0;
     /**
     * brief: discardUnmixableEnotes - freeze all unmixable enotes
     * note: sets status error on fail
