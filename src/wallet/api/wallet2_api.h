@@ -1517,6 +1517,11 @@ struct Wallet
     * note: sets status error on fail
     */
     virtual bool importKeyImages(std::vector<std::string> key_images, std::size_t offset = 0, std::unordered_set<std::size_t> selected_enotes_indices = {}) = 0;
+    /**
+    * brief: allowMismatchedDaemonVersion -
+    * param: allow_mismatch -
+    */
+    virtual void allowMismatchedDaemonVersion(bool allow_mismatch) = 0;
 };
 
 /**
