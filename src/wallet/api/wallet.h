@@ -278,6 +278,8 @@ public:
     std::pair<std::size_t, std::uint64_t> estimateTxSizeAndWeight(bool use_rct, int n_inputs, int ring_size, int n_outputs, std::size_t extra_size) const override;
     std::uint64_t importKeyImages(const std::vector<std::pair<std::string, std::string>> &signed_key_images, std::size_t offset, std::uint64_t &spent, std::uint64_t &unspent, bool check_spent = true) override;
     bool importKeyImages(std::vector<std::string> key_images, std::size_t offset = 0, std::unordered_set<std::size_t> selected_enotes_indices = {}) override;
+    bool getAllowMismatchedDaemonVersion() const override;
+    void setAllowMismatchedDaemonVersion(bool allow_mismatch) override;
 
 private:
     void clearStatus() const;

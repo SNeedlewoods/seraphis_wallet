@@ -3589,6 +3589,16 @@ bool WalletImpl::importKeyImages(std::vector<std::string> key_images, std::size_
     return false;
 }
 //-------------------------------------------------------------------------------------------------------------------
+bool WalletImpl::getAllowMismatchedDaemonVersion() const
+{
+    return m_wallet->is_mismatched_daemon_version_allowed();
+}
+//-------------------------------------------------------------------------------------------------------------------
+void WalletImpl::setAllowMismatchedDaemonVersion(bool allow_mismatch)
+{
+    m_wallet->allow_mismatched_daemon_version(allow_mismatch);
+}
+//-------------------------------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------------------------------
 // PRIVATE
