@@ -3579,8 +3579,8 @@ bool WalletImpl::importKeyImages(std::vector<std::string> key_images, std::size_
 
     try
     {
-        boost::optional<std::unordered_set<std::size_t>> _selected_enote_indices = selected_enotes_indices.empty() ? boost::none : boost::optional<std::unordered_set<std::size_t>>(selected_enotes_indices);
-        return m_wallet->import_key_images(key_images_pod, offset, _selected_enote_indices);
+        boost::optional<std::unordered_set<std::size_t>> optional_selected_enote_indices = selected_enotes_indices.empty() ? boost::none : boost::optional<std::unordered_set<std::size_t>>(selected_enotes_indices);
+        return m_wallet->import_key_images(key_images_pod, offset, optional_selected_enote_indices);
     }
     catch (const std::exception &e)
     {

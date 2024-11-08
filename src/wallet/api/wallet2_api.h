@@ -1362,7 +1362,6 @@ struct Wallet
     * warning: doesn't tell if it failed
     */
     virtual std::uint32_t adjustPriority(std::uint32_t priority) = 0;
-    // QUESTION : Any suggestion for the function description below?
     /**
     * brief: coldTxAuxImport -
     * param: ptx -
