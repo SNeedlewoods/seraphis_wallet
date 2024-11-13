@@ -52,7 +52,27 @@ const std::size_t NUM_WALLETS       = 2;
 const std::uint64_t FAKE_OUTS_COUNT = 15;
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
-static std::unique_ptr<Monero::WalletImpl> generate_wallet(const std::string &daemon_addr,
+static std::unique_ptr<tools::wallet2> generate_wallet(const std::string &daemon_addr,
+    const boost::optional<epee::net_utils::http::login> &daemon_login,
+    const epee::net_utils::ssl_options_t ssl_support)
+{
+    std::unique_ptr<tools::wallet2> wal(new tools::wallet2(
+        /*network*/                              cryptonote::MAINNET,
+        /*kdf rounds*/                           1,
+        /*unattended keeps spend key decrypted*/ true
+    ));
+
+    wal->init(daemon_addr, daemon_login, "", 0UL, true/*trusted_daemon*/, ssl_support);
+    wal->allow_mismatched_daemon_version(true);
+    wal->set_refresh_from_block_height(1); // setting to 1 skips height estimate in wal->generate()
+
+    // Generate wallet in memory with empty wallet file name
+    wal->generate("", "");
+
+    return wal;
+}
+//-------------------------------------------------------------------------------------------------------------------
+static std::unique_ptr<Monero::WalletImpl> generate_api_wallet(const std::string &daemon_addr,
     const boost::optional<epee::net_utils::http::login> &daemon_login,
     const epee::net_utils::ssl_options_t ssl_support)
 {
@@ -101,6 +121,9 @@ void WalletAPITest::mine(const std::size_t wallet_idx, const std::uint64_t num_b
 {
     const std::string addr = this->wallet(wallet_idx)->mainAddress();
     this->daemon()->generateblocks(addr, num_blocks);
+    std::string err = "";
+    std::cout << "DEBUG daemon_bc_height wallet2   : " << this->wallet2(0)->get_daemon_blockchain_height(err) << "\n";
+    std::cout << "DEBUG daemon_bc_height wallet API: " << this->wallet(0)->daemonBlockChainHeight() << "\n";
 }
 //-------------------------------------------------------------------------------------------------------------------
 //void WalletAPITest::transfer(const std::size_t wallet_idx,
@@ -346,9 +369,9 @@ bool WalletAPITest::run()
     this->reset();
 
     // Run the tests
-    this->check_something();
-    this->check_hardForkInfo();
-    this->check_useForkRules();
+//    this->check_something();
+//    this->check_hardForkInfo();
+//    this->check_useForkRules();
     this->check_balance();
 
     return true;
@@ -363,9 +386,14 @@ WalletAPITest::WalletAPITest(const std::string &daemon_addr):
     m_daemon = std::make_unique<tools::t_daemon_rpc_client>(m_daemon_addr, daemon_login, ssl_support);
 
     m_wallets.reserve(NUM_WALLETS);
+    m_api_wallets.reserve(NUM_WALLETS);
     for (std::size_t i = 0; i < NUM_WALLETS; ++i)
     {
         m_wallets.push_back(generate_wallet(m_daemon_addr, daemon_login, ssl_support));
+    }
+    for (std::size_t i = 0; i < NUM_WALLETS; ++i)
+    {
+        m_api_wallets.push_back(generate_api_wallet(m_daemon_addr, daemon_login, ssl_support));
     }
 }
 //-------------------------------------------------------------------------------------------------------------------

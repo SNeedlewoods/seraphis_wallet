@@ -96,10 +96,16 @@ private:
         return m_daemon;
     };
 
-    std::unique_ptr<Monero::WalletImpl> &wallet(const std::size_t idx)
+    std::unique_ptr<tools::wallet2> &wallet2(const std::size_t idx)
     {
         CHECK_AND_ASSERT_THROW_MES(idx <= m_wallets.size(), "too high wallet idx");
         return m_wallets[idx];
+    };
+
+    std::unique_ptr<Monero::WalletImpl> &wallet(const std::size_t idx)
+    {
+        CHECK_AND_ASSERT_THROW_MES(idx <= m_api_wallets.size(), "too high api_wallet idx");
+        return m_api_wallets[idx];
     };
 
 private:
@@ -108,7 +114,8 @@ private:
 
     // Resources that are expected to be accessed through the accessor functions above
     std::unique_ptr<tools::t_daemon_rpc_client>  m_daemon;
-    std::vector<std::unique_ptr<Monero::WalletImpl>> m_wallets;
+    std::vector<std::unique_ptr<tools::wallet2>> m_wallets;
+    std::vector<std::unique_ptr<Monero::WalletImpl>> m_api_wallets;
 };
 //-------------------------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------------------------
