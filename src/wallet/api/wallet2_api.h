@@ -469,6 +469,21 @@ struct WalletListener
      * @brief If the listener is created before the wallet this enables to set created wallet object
      */
     virtual void onSetWallet(Wallet * wallet) { (void)wallet; };
+
+    /**
+     * @brief called on blockchain reorg
+     */
+    virtual void onReorg(std::uint64_t height, std::uint64_t blocks_detached, std::size_t transfers_detached) = 0;
+
+    /**
+     * @brief called by scan_output() to decrypt keys
+     */
+    virtual optional<std::string> onGetPassword(const char *reason) = 0;
+
+    /**
+     * @brief called when obsolete pool transactions get removed
+     */
+    virtual void onPoolTxRemoved(const std::string &txid) = 0;
 };
 
 

@@ -295,9 +295,31 @@ struct Wallet2CallbackImpl : public tools::i_wallet2_callback
       }
     }
 
-    virtual void on_reorg(uint64_t height, uint64_t blocks_detached, size_t transfers_detached) { /* TODO */ }
-    virtual boost::optional<epee::wipeable_string> on_get_password(const char *reason) { return boost::none; }
-    virtual void on_pool_tx_removed(const crypto::hash &txid) { /* TODO */ }
+    virtual void on_reorg(std::uint64_t height, std::uint64_t blocks_detached, std::size_t transfers_detached)
+    {
+        if (m_listener) {
+            m_listener->onReorg(height, blocks_detached, transfers_detached);
+        }
+    }
+
+    virtual boost::optional<epee::wipeable_string> on_get_password(const char *reason)
+    {
+        if (m_listener) {
+            auto password = m_listener->onGetPassword(reason);
+            if (password) {
+                return boost::make_optional(epee::wipeable_string((*password).data(), (*password).size()));
+            }
+        }
+        return boost::none;
+    }
+
+    virtual void on_pool_tx_removed(const crypto::hash &txid)
+    {
+        std::string txid_hex = epee::string_tools::pod_to_hex(txid);
+        if (m_listener) {
+            m_listener->onPoolTxRemoved(txid_hex);
+        }
+    }
 
     WalletListener * m_listener;
     WalletImpl     * m_wallet;
