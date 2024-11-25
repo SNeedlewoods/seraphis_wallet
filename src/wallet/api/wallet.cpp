@@ -3621,6 +3621,74 @@ void WalletImpl::setAllowMismatchedDaemonVersion(bool allow_mismatch)
     m_wallet->allow_mismatched_daemon_version(allow_mismatch);
 }
 //-------------------------------------------------------------------------------------------------------------------
+bool WalletImpl::setDaemon(const std::string &daemon_address,
+        const std::string &daemon_username /* = "" */,
+        const std::string &daemon_password /* = "" */,
+        bool trusted_daemon /* = true */,
+        const std::string &ssl_support /* = "autodetect" */,
+        const std::string &ssl_private_key_path /* = "" */,
+        const std::string &ssl_certificate_path /* = "" */,
+        const std::string &ssl_ca_file_path /* = "" */,
+        const std::vector<std::string> &ssl_allowed_fingerprints_str /* = {} */,
+        bool ssl_allow_any_cert /* = false */,
+        const std::string &proxy /* = "" */)
+{
+    clearStatus();
+
+    // SSL allowed fingerprints
+    std::vector<std::vector<uint8_t>> ssl_allowed_fingerprints;
+    ssl_allowed_fingerprints.reserve(ssl_allowed_fingerprints_str.size());
+    for (const std::string &fp: ssl_allowed_fingerprints_str)
+    {
+        ssl_allowed_fingerprints.push_back({});
+        std::vector<uint8_t> &v = ssl_allowed_fingerprints.back();
+        for (auto c: fp)
+            v.push_back(c);
+    }
+
+    // SSL options
+    epee::net_utils::ssl_options_t ssl_options = epee::net_utils::ssl_support_t::e_ssl_support_enabled;
+    if (ssl_allow_any_cert)
+        ssl_options.verification = epee::net_utils::ssl_verification_t::none;
+    else if (!ssl_allowed_fingerprints.empty() || !ssl_ca_file_path.empty())
+        ssl_options = epee::net_utils::ssl_options_t{std::move(ssl_allowed_fingerprints), std::move(ssl_ca_file_path)};
+
+    if (!epee::net_utils::ssl_support_from_string(ssl_options.support, ssl_support))
+    {
+        setStatusError(string(tr("Invalid ssl support option (allowed options:`disabled` | `enabled` | `autodetect`), actual value: ")) + ssl_support);
+        return false;
+    }
+
+    ssl_options.auth = epee::net_utils::ssl_authentication_t{
+        std::move(ssl_private_key_path), std::move(ssl_certificate_path)
+    };
+
+    const bool verification_required =
+        ssl_options.verification != epee::net_utils::ssl_verification_t::none &&
+        ssl_options.support == epee::net_utils::ssl_support_t::e_ssl_support_enabled;
+
+    if (verification_required && !ssl_options.has_strong_verification(boost::string_ref{}))
+    {
+        setStatusError(string(tr("SSL is enabled but no user certificate or fingerprints were provided")));
+        return false;
+    }
+
+    // daemon login
+    if(daemon_username != "")
+        m_daemon_login.emplace(daemon_username, daemon_password);
+
+    // set daemon
+    try
+    {
+        return m_wallet->set_daemon(daemon_address, m_daemon_login, trusted_daemon, ssl_options, proxy);
+    }
+    catch (const std::exception &e)
+    {
+        setStatusError(string(tr("Failed to set daemon: ")) + e.what());
+    }
+    return false;
+}
+//-------------------------------------------------------------------------------------------------------------------
 
 //-------------------------------------------------------------------------------------------------------------------
 // PRIVATE

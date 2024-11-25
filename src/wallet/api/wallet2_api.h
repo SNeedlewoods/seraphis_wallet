@@ -1541,6 +1541,33 @@ struct Wallet
     * param: allow_mismatch -
     */
     virtual void setAllowMismatchedDaemonVersion(bool allow_mismatch) = 0;
+    /**
+    * brief: setDaemon -
+    * param: daemon_address       -
+    * param: daemon_username      - for daemon login (default: empty string)
+    * param: daemon_password      - for daemon login (default: empty string)
+    * param: trusted_daemon       - (default: true)
+    * param: ssl_support          - "disabled" | "enabled" | "autodetect" (default: "autodetect")
+    * param: ssl_private_key_path - (default: empty string)
+    * param: ssl_certificate_path - (default: empty string)
+    * param: ssl_ca_file_path     - (default: empty string)
+    * param: ssl_allowed_fingerprints_str - (default: empty vector)
+    * param: ssl_allow_any_cert   - (default: false)
+    * param: proxy                - (default: empty string)
+    * return: true if succeeded
+    * note: sets status error on fail
+    */
+    virtual bool setDaemon(const std::string &daemon_address,
+        const std::string &daemon_username = "",
+        const std::string &daemon_password = "",
+        bool trusted_daemon = true,
+        const std::string &ssl_support = "autodetect",
+        const std::string &ssl_private_key_path = "",
+        const std::string &ssl_certificate_path = "",
+        const std::string &ssl_ca_file_path = "",
+        const std::vector<std::string> &ssl_allowed_fingerprints_str = {},
+        bool ssl_allow_any_cert = false,
+        const std::string &proxy = "") = 0;
 };
 
 /**

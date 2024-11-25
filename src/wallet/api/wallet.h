@@ -280,6 +280,7 @@ public:
     bool importKeyImages(std::vector<std::string> key_images, std::size_t offset = 0, std::unordered_set<std::size_t> selected_enotes_indices = {}) override;
     bool getAllowMismatchedDaemonVersion() const override;
     void setAllowMismatchedDaemonVersion(bool allow_mismatch) override;
+    bool setDaemon(const std::string &daemon_address, const std::string &daemon_username = "", const std::string &daemon_password = "", bool trusted_daemon = true, const std::string &ssl_support = "autodetect", const std::string &ssl_private_key_path = "", const std::string &ssl_certificate_path = "", const std::string &ssl_ca_file_path = "", const std::vector<std::string> &ssl_allowed_fingerprints_str = {}, bool ssl_allow_any_cert = false, const std::string &proxy = "") override;
 
 private:
     void clearStatus() const;
