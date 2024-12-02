@@ -277,7 +277,7 @@ public:
     std::vector<std::tuple<std::string, std::uint16_t, std::uint64_t>> getPublicNodes(bool white_only = true) const override;
     std::pair<std::size_t, std::uint64_t> estimateTxSizeAndWeight(bool use_rct, int n_inputs, int ring_size, int n_outputs, std::size_t extra_size) const override;
     std::uint64_t importKeyImages(const std::vector<std::pair<std::string, std::string>> &signed_key_images, std::size_t offset, std::uint64_t &spent, std::uint64_t &unspent, bool check_spent = true) override;
-    bool importKeyImages(std::vector<std::string> key_images, std::size_t offset = 0, std::unordered_set<std::size_t> selected_enotes_indices = {}) override;
+    bool importKeyImages(const std::vector<std::string> &key_images, std::size_t offset = 0, const std::unordered_set<std::size_t> &selected_enotes_indices = {}) override;
     bool getAllowMismatchedDaemonVersion() const override;
     void setAllowMismatchedDaemonVersion(bool allow_mismatch) override;
     bool setDaemon(const std::string &daemon_address, const std::string &daemon_username = "", const std::string &daemon_password = "", bool trusted_daemon = true, const std::string &ssl_support = "autodetect", const std::string &ssl_private_key_path = "", const std::string &ssl_certificate_path = "", const std::string &ssl_ca_file_path = "", const std::vector<std::string> &ssl_allowed_fingerprints_str = {}, bool ssl_allow_any_cert = false, const std::string &proxy = "") override;

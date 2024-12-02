@@ -1184,7 +1184,7 @@ bool WalletImpl::submitTransaction(const string &fileName) {
 
   bool r = m_wallet->load_tx(fileName, transaction->m_pending_tx);
   if (!r) {
-    setStatus(Status_Ok, tr("Failed to load transaction from file"));
+    setStatusError(tr("Failed to load transaction from file"));
     return false;
   }
   
@@ -3582,7 +3582,7 @@ std::uint64_t WalletImpl::importKeyImages(const std::vector<std::pair<std::strin
     return false;
 }
 //-------------------------------------------------------------------------------------------------------------------
-bool WalletImpl::importKeyImages(std::vector<std::string> key_images, std::size_t offset, std::unordered_set<std::size_t> selected_enotes_indices)
+bool WalletImpl::importKeyImages(const std::vector<std::string> &key_images, std::size_t offset, const std::unordered_set<std::size_t> &selected_enotes_indices)
 {
     clearStatus();
 

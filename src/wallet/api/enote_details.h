@@ -97,9 +97,9 @@ private:
     // track uses of this enote in the blockchain in the format [ [block_height, tx_id], ... ] if `wallet2::m_track_uses` is true (default is false)
     std::vector<std::pair<std::uint64_t, std::string>> m_uses;
 
-// QUESTION : Any input on these multisig members? I'd ignore them for now.
     // Multisig
     bool m_key_image_partial;
+    // NOTE : These multisig members are part of wallet2 transfer_details and may need to get added here.
 /*
     std::vector<rct::key> m_multisig_k;
     std::vector<multisig_info> m_multisig_info; // one per other participant

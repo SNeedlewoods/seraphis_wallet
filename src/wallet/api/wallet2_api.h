@@ -469,20 +469,17 @@ struct WalletListener
      * @brief If the listener is created before the wallet this enables to set created wallet object
      */
     virtual void onSetWallet(Wallet * wallet) { (void)wallet; };
-
     /**
-     * @brief called on blockchain reorg
-     */
+    * brief: onReorg - called on blockchain reorg
+    */
     virtual void onReorg(std::uint64_t height, std::uint64_t blocks_detached, std::size_t transfers_detached) = 0;
-
     /**
-     * @brief called by scan_output() to decrypt keys
-     */
+    * brief: onGetPassword - called by scan_output() to decrypt keys
+    */
     virtual optional<std::string> onGetPassword(const char *reason) = 0;
-
     /**
-     * @brief called when obsolete pool transactions get removed
-     */
+    * brief: onPoolTxRemoved - when obsolete pool transactions get removed
+    */
     virtual void onPoolTxRemoved(const std::string &txid) = 0;
 };
 
@@ -1456,12 +1453,6 @@ struct Wallet
     * note: sets status error on fail
     */
     virtual std::vector<std::pair<std::uint64_t, std::uint64_t>> estimateBacklog(const std::vector<std::pair<double, double>> &fee_levels) const = 0;
-// TODO : mms::multisig_wallet_state - from a quick search for get_multisig_wallet_state in simplewallet.cpp this will be complicated to replace
-    /**
-    * brief: getMultisigWalletState -
-    * return:
-    */
-//    virtual mms::multisig_wallet_state getMultisigWalletState() const = 0;
     /**
     * brief: saveToFile   - save hex string to file
     * param: path_to_file - file name
@@ -1531,7 +1522,7 @@ struct Wallet
     * return: true if succeeded
     * note: sets status error on fail
     */
-    virtual bool importKeyImages(std::vector<std::string> key_images, std::size_t offset = 0, std::unordered_set<std::size_t> selected_enotes_indices = {}) = 0;
+    virtual bool importKeyImages(const std::vector<std::string> &key_images, std::size_t offset = 0, const std::unordered_set<std::size_t> &selected_enotes_indices = {}) = 0;
     /**
     * brief: getAllowMismatchedDaemonVersion -
     */
