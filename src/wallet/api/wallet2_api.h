@@ -461,8 +461,7 @@ struct Wallet
     virtual std::string errorString() const = 0; //deprecated: use safe alternative statusWithErrorString
     //! returns both error and error string atomically. suggested to use in instead of status() and errorString()
     virtual void statusWithErrorString(int& status, std::string& errorString) const = 0;
-    virtual bool setPassword(const std::string &password) = 0;
-    virtual const std::string& getPassword() const = 0;
+    virtual bool setPassword(const char *old_password, std::size_t old_pw_len, const char *new_password, std::size_t new_pw_len) = 0;
     virtual bool setDevicePin(const std::string &pin) { (void)pin; return false; };
     virtual bool setDevicePassphrase(const std::string &passphrase) { (void)passphrase; return false; };
     virtual std::string address(uint32_t accountIndex = 0, uint32_t addressIndex = 0) const = 0;
@@ -526,9 +525,10 @@ struct Wallet
      * \brief store - stores wallet to file.
      * \param path - main filename to store wallet to. additionally stores address file and keys file.
      *               to store to the same file - just pass empty string;
+     * \param password - only needed if path is not empty (default: empty optional)
      * \return
      */
-    virtual bool store(const std::string &path) = 0;
+    virtual bool store(const std::string &path, const optional<char *> &password = optional<char *>(), std::size_t pw_len = 0) = 0;
     /*!
      * \brief filename - returns wallet filename
      * \return
@@ -797,16 +797,18 @@ struct Wallet
      * @brief makeMultisig - switches wallet in multisig state. The one and only creation phase for N / N wallets
      * @param info - vector of multisig infos from other participants obtained with getMulitisInfo call
      * @param threshold - number of required signers to make valid transaction. Must be <= number of participants
+     * @param password - wallet password
      * @return in case of N / N wallets returns empty string since no more key exchanges needed. For N - 1 / N wallets returns base58 encoded extra multisig info
      */
-    virtual std::string makeMultisig(const std::vector<std::string>& info, uint32_t threshold) = 0;
+    virtual std::string makeMultisig(const std::vector<std::string>& info, uint32_t threshold, const char *password, std::size_t pw_len) = 0;
     /**
      * @brief exchange_multisig_keys - provides additional key exchange round for arbitrary multisig schemes (like N-1/N, M/N)
      * @param info - base58 encoded key derivations returned by makeMultisig or exchangeMultisigKeys function call
+     * @param password - wallet password
      * @param force_update_use_with_caution - force multisig account to update even if not all signers contribute round messages
      * @return new info string if more rounds required or an empty string if wallet creation is done
      */
-    virtual std::string exchangeMultisigKeys(const std::vector<std::string> &info, const bool force_update_use_with_caution) = 0;
+    virtual std::string exchangeMultisigKeys(const std::vector<std::string> &info, const char *password, std::size_t pw_len, const bool force_update_use_with_caution) = 0;
     /**
      * @brief exportMultisigImages - exports transfers' key images
      * @param images - output paramter for hex encoded array of images
