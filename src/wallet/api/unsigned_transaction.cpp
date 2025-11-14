@@ -68,7 +68,7 @@ string UnsignedTransactionImpl::errorString() const
     return m_errorString;
 }
 
-bool UnsignedTransactionImpl::sign(const std::string &signedFileName)
+bool UnsignedTransactionImpl::sign(const std::string &signedFileName, bool do_export_raw /* = false */, std::vector<std::string> *tx_ids_out /* = nullptr */)
 {
   if(m_wallet.watchOnly())
   {
@@ -79,7 +79,7 @@ bool UnsignedTransactionImpl::sign(const std::string &signedFileName)
   std::vector<tools::wallet2::pending_tx> ptx;
   try
   {
-    bool r = m_wallet.m_wallet->sign_tx(m_unsigned_tx_set, signedFileName, ptx);
+    bool r = m_wallet.m_wallet->sign_tx(m_unsigned_tx_set, signedFileName, ptx, do_export_raw);
     if (!r)
     {
       m_errorString = tr("Failed to sign transaction");
@@ -89,9 +89,17 @@ bool UnsignedTransactionImpl::sign(const std::string &signedFileName)
   }
   catch (const std::exception &e)
   {
-    m_errorString = string(tr("Failed to sign transaction")) + e.what();
+    m_errorString = string(tr("Failed to sign transaction: ")) + e.what();
     m_status = Status_Error;
     return false;
+  }
+  if (tx_ids_out)
+  {
+    std::string tx_id_str;
+    for (const auto &tx : ptx)
+    {
+      (*tx_ids_out).push_back(epee::string_tools::pod_to_hex(get_transaction_hash(tx.tx)));
+    }
   }
   return true;
 }
