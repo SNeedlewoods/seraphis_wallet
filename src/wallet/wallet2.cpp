@@ -1029,6 +1029,50 @@ crypto::chacha_key derive_cache_key(const crypto::chacha_key& keys_data_key, con
 
   return cache_key;
 }
+
+/**
+ * @brief load pre-generated <timestamp, blockheight> map
+ *  used to:
+ *  - get current height approximation when offline
+ *  - get restore height by date when offline
+ * @param nettype network type [ MAINNET | TESTNET | STAGENET ]
+ * @return map of <timestamp, blockheight>
+*/
+static std::map<int, uint64_t> get_timestamp_blockheight_map(cryptonote::network_type nettype)
+{
+  static std::map<int, uint64_t> data{};
+  if (data.empty())
+  {
+    const std::string nettype_suffix = (nettype == MAINNET ? "mainnet" : nettype == TESTNET ? "testnet" : "stagenet");
+    const std::string filepath = tools::get_default_data_dir() + "/timestamp_blockheight_map_" + nettype_suffix;
+    ifstream f{filepath};
+    string l{};
+    int ts{};
+    uint64_t bh{};
+    if (f.peek() == std::fstream::traits_type::eof())
+    {
+      LOG_ERROR((boost::format("`%s` is empty.") % filepath).str());
+      return {};
+    }
+    while (getline(f, l))
+    {
+      size_t delim = l.find(":");
+      if (delim == 0) throw runtime_error{"Could not find delimiter in timestamp blockheight map"};
+      try
+      {
+        ts = stoi(l.substr(0, delim).c_str());
+        bh = stoull(l.substr(delim+1).c_str());
+      }
+      catch (const exception &e)
+      {
+        LOG_ERROR((boost::format("Failed to parse `%s`: %s") % filepath % e.what()).str());
+        return {};
+      }
+      data[ts] = bh;
+    }
+  }
+  return data;
+}
   //-----------------------------------------------------------------
 } //namespace
 
@@ -12779,31 +12823,31 @@ uint64_t wallet2::get_daemon_blockchain_target_height(string &err)
   return target_height;
 }
 
-uint64_t wallet2::get_approximate_blockchain_height() const
+uint64_t wallet2::get_approximate_blockchain_height(int timestamp /* = 0 */) const
 {
-  const size_t wallet_num_hard_forks = m_nettype == TESTNET  ? num_testnet_hard_forks
-                                     : m_nettype == STAGENET ? num_stagenet_hard_forks
-                                     :                         num_mainnet_hard_forks;
-  const hardfork_t *wallet_hard_forks = m_nettype == TESTNET  ? testnet_hard_forks
-                                      : m_nettype == STAGENET ? stagenet_hard_forks
-                                      :                         mainnet_hard_forks;
-  // time of latest fork
-  const time_t fork_time = wallet_hard_forks[wallet_num_hard_forks-1].time;
-  // latest fork block
-  const uint64_t fork_block = wallet_hard_forks[wallet_num_hard_forks-1].height;
-  // avg seconds per block
-  const int seconds_per_block = DIFFICULTY_TARGET_V2;
-  // Calculated blockchain height
-  uint64_t approx_blockchain_height = fork_block;
-  const time_t now = time(NULL);
-  if (now > fork_time)
-    approx_blockchain_height += (now - fork_time) / seconds_per_block;
-  // testnet and stagenet got some huge rollbacks, so the estimation is way off
-  const uint64_t approximate_rolled_back_blocks = m_nettype == TESTNET ? 26600 : m_nettype == STAGENET ? 48600 : 33600;
-  if (approx_blockchain_height > approximate_rolled_back_blocks)
-    approx_blockchain_height -= approximate_rolled_back_blocks;
-  LOG_PRINT_L2("Calculated blockchain height: " << approx_blockchain_height);
-  return approx_blockchain_height;
+  timestamp = timestamp ? timestamp : time(NULL);
+  // date: 2014-01-01
+  const int min_timestamp = 1388530800;
+  // seconds in 14 days
+  const int far = 60 * 60 * 24 * 14;
+  auto ts_bh_map = get_timestamp_blockheight_map(m_nettype);
+
+  // Given timestamp is "far" in the future, compared to latest known timestamp in the map,
+  // so we add approximate amount of blocks
+  const int &max_known_height = ts_bh_map.rbegin()->first;
+  if (timestamp > max_known_height + far)
+  {
+    int approx_blocks = (timestamp - max_known_height) / DIFFICULTY_TARGET_V2;
+    LOG_PRINT_L2((boost::format("Relying on approximated height. Starting from last known height `%s` and adding `%s` approximated blocks") % max_known_height % approx_blocks).str());
+    return max_known_height + approx_blocks;
+  }
+
+  // Find closest timestamp in the map, that was before given timestamp
+  while (ts_bh_map.count(timestamp) == 0 && timestamp > min_timestamp)
+    timestamp--;
+  if (timestamp <= min_timestamp)
+    throw invalid_argument{ (boost::format("Provided timestamp `%d` is before minimal timestamp `%d`.") % timestamp % min_timestamp).str() };
+  return ts_bh_map[timestamp];
 }
 
 void wallet2::set_tx_note(const crypto::hash &txid, const std::string &note)
