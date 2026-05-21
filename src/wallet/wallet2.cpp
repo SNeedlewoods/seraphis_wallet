@@ -15004,16 +15004,23 @@ bool wallet2::parse_uri(const std::string &uri, std::string &address, std::strin
   return true;
 }
 //----------------------------------------------------------------------------------------------------
-uint64_t wallet2::get_blockchain_height_by_date(uint16_t year, uint8_t month, uint8_t day)
+uint64_t wallet2::get_blockchain_height_by_date(uint16_t year, uint8_t month, uint8_t day, bool allow_offline_approximation_fallback /* = false */)
 {
   uint32_t version;
+  bool use_offline_approximation = false;
   if (!check_connection(&version))
   {
-    throw std::runtime_error("failed to connect to daemon: " + get_daemon_address());
+    if (allow_offline_approximation_fallback)
+      use_offline_approximation = true;
+    else
+      throw std::runtime_error("failed to connect to daemon: " + get_daemon_address());
   }
   if (version < MAKE_CORE_RPC_VERSION(1, 6))
   {
-    throw std::runtime_error("this function requires RPC version 1.6 or higher");
+    if (allow_offline_approximation_fallback)
+      use_offline_approximation = true;
+    else
+      throw std::runtime_error("this function requires RPC version 1.6 or higher");
   }
   std::tm date = { 0, 0, 0, 0, 0, 0, 0, 0 };
   date.tm_year = year - 1900;
@@ -15024,6 +15031,10 @@ uint64_t wallet2::get_blockchain_height_by_date(uint16_t year, uint8_t month, ui
     throw std::runtime_error("month or day out of range");
   }
   uint64_t timestamp_target = std::mktime(&date);
+
+  if (allow_offline_approximation_fallback && use_offline_approximation)
+    return get_approximate_blockchain_height(timestamp_target);
+
   std::string err;
   uint64_t height_min = 0;
   uint64_t height_max = get_daemon_blockchain_height(err) - 1;
