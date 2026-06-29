@@ -1257,6 +1257,13 @@ include(external/supercop/functions.cmake) # place after setting flags and befor
 add_subdirectory(contrib)
 add_subdirectory(src)
 
+# lwsf (LWS light-wallet backend) builds as part of the monero tree so monero is compiled once and
+# lwsf-api links monero's targets directly (see lwsf/CMakeLists.txt: it skips FetchContent when
+# `wallet_api` already exists). The submodule is optional — only built when checked out.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/lwsf/CMakeLists.txt")
+  add_subdirectory(lwsf)
+endif()
+
 find_package(PythonInterp)
 if(BUILD_TESTS)
   message(STATUS "Building tests")
