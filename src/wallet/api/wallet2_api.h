@@ -907,7 +907,8 @@ struct Wallet
                                                    PendingTransaction::Priority = PendingTransaction::Priority_Low,
                                                    uint32_t subaddr_account = 0,
                                                    std::set<uint32_t> subaddr_indices = {},
-                                                   const std::set<std::string> &preferred_inputs = {}) = 0;
+                                                   const std::set<std::string> &preferred_inputs = {},
+                                                   const std::set<uint32_t> &subtract_fee_from_outputs = {}) = 0;
 
     /*!
      * \brief createTransaction creates transaction. if dst_addr is an integrated address, payment_id is ignored
@@ -927,7 +928,8 @@ struct Wallet
                                                    PendingTransaction::Priority = PendingTransaction::Priority_Low,
                                                    uint32_t subaddr_account = 0,
                                                    std::set<uint32_t> subaddr_indices = {},
-                                                   const std::set<std::string> &preferred_inputs = {}) = 0;
+                                                   const std::set<std::string> &preferred_inputs = {},
+                                                   const std::set<uint32_t> &subtract_fee_from_outputs = {}) = 0;
 
     /*!
      * \brief createSweepUnmixableTransaction creates transaction with unmixable outputs.
