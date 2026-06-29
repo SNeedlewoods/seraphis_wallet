@@ -2493,6 +2493,11 @@ bool WalletImpl::trustedDaemon() const
     return m_wallet->is_trusted_daemon();
 }
 
+void WalletImpl::setAllowMismatchedDaemonVersion(bool allow)
+{
+    m_wallet->allow_mismatched_daemon_version(allow);
+}
+
 bool WalletImpl::setProxy(const std::string &address)
 {
     return m_wallet->set_proxy(address);

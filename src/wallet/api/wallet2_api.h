@@ -656,6 +656,13 @@ struct Wallet
     virtual ConnectionStatus connected() const = 0;
     virtual void setTrustedDaemon(bool arg) = 0;
     virtual bool trustedDaemon() const = 0;
+    /**
+     * @brief setAllowMismatchedDaemonVersion - when true, skip the wallet<->daemon hard-fork
+     * compatibility check. Required to sync against a regtest/fakechain node (which advertises a
+     * collapsed 2-entry hard-fork table and would otherwise be rejected as incorrect_fork_version).
+     * Intended for testing only. Non-pure so other Wallet implementations need not override it.
+     */
+    virtual void setAllowMismatchedDaemonVersion(bool allow) {}
     virtual bool setProxy(const std::string &address) = 0;
     virtual uint64_t balance(uint32_t accountIndex = 0) const = 0;
     uint64_t balanceAll() const {

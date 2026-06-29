@@ -120,6 +120,7 @@ public:
     ConnectionStatus connected() const override;
     void setTrustedDaemon(bool arg) override;
     bool trustedDaemon() const override;
+    void setAllowMismatchedDaemonVersion(bool allow) override;
     bool setProxy(const std::string &address) override;
     uint64_t balance(uint32_t accountIndex = 0) const override;
     uint64_t unlockedBalance(uint32_t accountIndex = 0) const override;
