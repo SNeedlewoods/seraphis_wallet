@@ -17,3 +17,7 @@
 	path = external/supercop
 	url = https://github.com/monero-project/supercop
 	branch = monero
+[submodule "lwsf"]
+	path = lwsf
+	url = git@codeberg.org:iuanv9/lwsf.git
+	branch = anonero
