@@ -643,14 +643,6 @@ struct Wallet
      */
     virtual void setSubaddressLookahead(uint32_t major, uint32_t minor) = 0;
 
-    /*!
-     * \brief getSubaddressLookaheadError - non-empty when the (light-wallet) server cannot scan the
-     * wallet's subaddresses/accounts at all (e.g. monero-lws started with --max-subaddresses 0), so
-     * only the primary address is watched and the displayed balance may be INCOMPLETE. Empty for an
-     * on-device wallet (wallet2 scans everything locally) and for a healthy LWS connection.
-     */
-    virtual std::string getSubaddressLookaheadError() const { return std::string(); }
-
     /**
      * @brief connectToDaemon - connects to the daemon. TODO: check if it can be removed
      * @return
@@ -1212,6 +1204,16 @@ struct Wallet
 
     //! get bytes sent
     virtual uint64_t getBytesSent() = 0;
+
+    /*!
+     * \brief getSubaddressLookaheadError - non-empty when the (light-wallet) server cannot scan the
+     * wallet's subaddresses/accounts at all (e.g. monero-lws started with --max-subaddresses 0), so
+     * only the primary address is watched and the displayed balance may be INCOMPLETE. Empty for an
+     * on-device wallet (wallet2 scans everything locally) and for a healthy LWS connection.
+     * NOTE: declared at the END of the interface on purpose — appending avoids shifting the vtable
+     * slot index of any existing virtual (the prebuilt liblwsf-api.a / libwallet_api.a workflow).
+     */
+    virtual std::string getSubaddressLookaheadError() const { return std::string(); }
 };
 
 /**
