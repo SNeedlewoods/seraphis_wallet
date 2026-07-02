@@ -3987,15 +3987,28 @@ void wallet2::fast_refresh(uint64_t stop_height, uint64_t &blocks_start_height, 
 {
   std::vector<crypto::hash> hashes;
 
-  const uint64_t checkpoint_height = m_checkpoints.get_max_height();
-  if ((stop_height > checkpoint_height && m_blockchain.size()-1 < checkpoint_height) && !force)
+  // ANONERO fast-forward fix: fill up to the highest checkpoint AT OR BELOW stop_height, not only the
+  // single max checkpoint. Upstream only fast-forwards when stop_height is ABOVE the last checkpoint;
+  // but a restore whose height sits BELOW the last checkpoint (increasingly common as checkpoints track
+  // near the tip) otherwise pulls the entire block-hash chain from genesis (painfully slow over Tor).
+  // Every block below a checkpoint is immutable, so it is safe to jump to the nearest checkpoint
+  // <= stop_height and only pull the small remainder. Never fill ABOVE stop_height, or we would skip
+  // scanning blocks the wallet still needs (its refresh-from-height may be below that checkpoint).
+  uint64_t ff_height = 0;
+  crypto::hash ff_hash = crypto::null_hash;
+  {
+    const std::map<uint64_t, crypto::hash> &pts = m_checkpoints.get_points();
+    std::map<uint64_t, crypto::hash>::const_iterator it = pts.upper_bound(stop_height);
+    if (it != pts.begin()) { --it; ff_height = it->first; ff_hash = it->second; }
+  }
+  if (ff_height > 0 && m_blockchain.size() - 1 < ff_height && !force)
   {
     // we will drop all these, so don't bother getting them
-    uint64_t missing_blocks = m_checkpoints.get_max_height() - m_blockchain.size();
+    uint64_t missing_blocks = ff_height - m_blockchain.size();
     while (missing_blocks-- > 0)
       m_blockchain.push_back(crypto::null_hash); // maybe a bit suboptimal, but deque won't do huge reallocs like vector
-    m_blockchain.push_back(m_checkpoints.get_points().at(checkpoint_height));
-    m_blockchain.trim(checkpoint_height);
+    m_blockchain.push_back(ff_hash);
+    m_blockchain.trim(ff_height);
     short_chain_history.clear();
     get_short_chain_history(short_chain_history);
   }
