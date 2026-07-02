@@ -1214,6 +1214,17 @@ struct Wallet
      * slot index of any existing virtual (the prebuilt liblwsf-api.a / libwallet_api.a workflow).
      */
     virtual std::string getSubaddressLookaheadError() const { return std::string(); }
+
+    /*!
+     * \brief getKeyImageImportWarning - non-empty when the last importKeyImages matched the
+     * wallet's outputs against the (light-wallet) server's spend-candidate lists but the server
+     * reported ZERO candidates for ALL of them. Spend detection on a view-only light wallet relies
+     * entirely on those candidates: a server that doesn't compute them (too old, misconfigured, or
+     * withholding) makes external spends undetectable, so the balance may silently OVER-COUNT
+     * already-spent outputs. Empty for wallet2 (spends detected locally) and for a healthy import.
+     * NOTE: appended at the END of the interface on purpose (see getSubaddressLookaheadError).
+     */
+    virtual std::string getKeyImageImportWarning() const { return std::string(); }
 };
 
 /**
