@@ -1225,6 +1225,16 @@ struct Wallet
      * NOTE: appended at the END of the interface on purpose (see getSubaddressLookaheadError).
      */
     virtual std::string getKeyImageImportWarning() const { return std::string(); }
+
+    /*!
+     * \brief getBlockHashProofWarning - non-empty when the (light-wallet) server sends no
+     * `m_block_ids` block-hash proofs (stock/legacy server): re-org detection degrades to
+     * height-only, so a server-side full rescan could silently drop the wallet's locally-held
+     * (trust-local) history without cryptographic proof. Empty for wallet2 (verifies its own
+     * chain) and for a hash-providing server.
+     * NOTE: appended at the END of the interface on purpose (see getSubaddressLookaheadError).
+     */
+    virtual std::string getBlockHashProofWarning() const { return std::string(); }
 };
 
 /**
