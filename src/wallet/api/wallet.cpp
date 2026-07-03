@@ -2590,7 +2590,11 @@ void WalletImpl::doRefresh()
         // Disable refresh if wallet is disconnected or daemon isn't synced.
         if (m_wallet->light_wallet() || daemonSynced()) {
             if(rescan)
-                m_wallet->rescan_blockchain(false);
+                // Watch-only: keep the imported (cold-signer) key images across a soft
+                // rescan — wiping them silently blinds the wallet to its own spends
+                // (outgoing history vanishes, balance over-counts) until the user redoes
+                // the whole QR key-image sync. wallet2 re-attaches by output pubkey.
+                m_wallet->rescan_blockchain(false, true, m_wallet->watch_only());
             m_wallet->refresh(trustedDaemon());
             m_synchronized = m_wallet->is_synced();
             // assuming if we have empty history, it wasn't initialized yet
