@@ -15156,6 +15156,37 @@ size_t wallet2::import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<
       "Offset is larger than total outputs");
 
   const size_t original_size = m_transfers.size();
+
+  // ANONERO: a pre-existing wallet may carry REAL scan state — the two-file mode switch re-imports
+  // an export over a live, previously-synced wallet (stock upstream only ever imports into a cold
+  // wallet built by this same path). The import below is POSITIONAL and the export's order need not
+  // match ours, so snapshot the state worth keeping BY OUTPUT PUBKEY before anything is overwritten:
+  // a real txid/height beats null/0, spent knowledge only ever accumulates (un-spending here would
+  // silently resurrect a spent output and over-count; rescanSpent() against a trusted daemon is the
+  // only un-spend authority), and a REAL key image (cold-signer import: known + !request) beats a
+  // placeholder.
+  struct w2_kept_state
+  {
+    crypto::hash txid;
+    uint64_t block_height;
+    uint64_t spent_height;
+    uint64_t unlock_time;
+    crypto::key_image key_image;
+    bool spent;
+    bool ki_known;
+    bool ki_request;
+    bool ki_partial;
+  };
+  std::unordered_map<crypto::public_key, w2_kept_state> kept;
+  kept.reserve(original_size);
+  for (size_t i = 0; i < original_size; ++i)
+  {
+    const transfer_details &td = m_transfers[i];
+    kept[td.get_public_key()] = w2_kept_state{td.m_txid, td.m_block_height, td.m_spent_height,
+      td.m_tx.unlock_time, td.m_key_image, td.m_spent, td.m_key_image_known, td.m_key_image_request,
+      td.m_key_image_partial};
+  }
+
   if (offset + output_array.size() > m_transfers.size())
     m_transfers.resize(offset + output_array.size());
   else if (num_outputs < m_transfers.size())
@@ -15166,19 +15197,27 @@ size_t wallet2::import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<
     exported_transfer_details etd = output_array[i];
     transfer_details &td = m_transfers[i + offset];
 
+    const auto kept_it = kept.find(etd.m_pubkey);
+    const w2_kept_state *old = kept_it != kept.end() ? &kept_it->second : NULL;
+
     // setup td with "cheap" loaded data
-    td.m_block_height = 0;
-    td.m_txid = crypto::null_hash;
+    td.m_block_height = old ? old->block_height : 0;
+    td.m_txid = old ? old->txid : crypto::null_hash;
     td.m_global_output_index = etd.m_global_output_index;
-    td.m_spent = etd.m_flags.m_spent;
+    td.m_spent = etd.m_flags.m_spent || (old && old->spent);
     td.m_frozen = etd.m_flags.m_frozen;
-    td.m_spent_height = 0;
+    td.m_spent_height = old ? old->spent_height : 0;
     td.m_mask = rct::identity();
     td.m_amount = etd.m_amount;
     td.m_rct = etd.m_flags.m_rct;
-    td.m_key_image_known = etd.m_flags.m_key_image_known;
-    td.m_key_image_request = etd.m_flags.m_key_image_request;
-    td.m_key_image_partial = false;
+    // ki flags: an output we already knew keeps ITS OWN state (the etd carries flag bits but no key
+    // image VALUE, so letting it flip known/request here could dress a placeholder up as a real key
+    // image); fresh outputs take the etd's flags and are overwritten by the re-derivation below anyway.
+    td.m_key_image_known = old ? old->ki_known : etd.m_flags.m_key_image_known;
+    td.m_key_image_request = old ? old->ki_request : etd.m_flags.m_key_image_request;
+    td.m_key_image_partial = old ? old->ki_partial : false;
+    if (old)
+      td.m_key_image = old->key_image;
     td.m_subaddr_index.major = etd.m_subaddr_index_major;
     td.m_subaddr_index.minor = etd.m_subaddr_index_minor;
 
@@ -15214,6 +15253,8 @@ size_t wallet2::import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<
     add_tx_pub_key_to_extra(td.m_tx, etd.m_tx_pubkey);
     if (!etd.m_additional_tx_keys.empty())
       add_additional_tx_pub_keys_to_extra(td.m_tx.extra, etd.m_additional_tx_keys);
+    if (old) // the synthetic prefix reset unlock_time; restore it (coinbase 60-block lock, locked-balance truth)
+      td.m_tx.unlock_time = old->unlock_time;
 
     // the hot wallet wouldn't have known about key images (except if we already exported them)
     cryptonote::keypair in_ephemeral;
@@ -15233,8 +15274,30 @@ size_t wallet2::import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<
     THROW_WALLET_EXCEPTION_IF(in_ephemeral.pub != out_key,
         error::wallet_internal_error, "key_image generated ephemeral public key not matched with output_key at index " + boost::lexical_cast<std::string>(i + offset));
 
+    // ANONERO: on a watch-only wallet the derivation above yields a PLACEHOLDER key image. If we
+    // knew this output's REAL key image (cold-signer import, snapshotted above by pubkey), restore
+    // it — losing it here would blind the wallet to its own spends until the next QR key-image sync.
+    if (old && old->ki_known && !old->ki_partial && (!m_watch_only || !old->ki_request))
+    {
+      td.m_key_image = old->key_image;
+      td.m_key_image_known = true;
+      td.m_key_image_request = false;
+      td.m_key_image_partial = false;
+    }
+
     m_key_images[td.m_key_image] = i + offset;
     m_pub_keys[td.get_public_key()] = i + offset;
+  }
+
+  // ANONERO: the positional overwrite above can re-assign which output lives at which index, leaving
+  // stale reverse-map entries (old ki/pubkey -> reused index) that would mis-attribute a future spend.
+  // Rebuild both maps from the authoritative m_transfers.
+  m_key_images.clear();
+  m_pub_keys.clear();
+  for (size_t n = 0; n < m_transfers.size(); ++n)
+  {
+    m_key_images[m_transfers[n].m_key_image] = n;
+    m_pub_keys[m_transfers[n].get_public_key()] = n;
   }
 
   return m_transfers.size();
@@ -15329,6 +15392,208 @@ size_t wallet2::import_outputs_from_str(const std::string &outputs_st)
   }
 
   return imported_outputs;
+}
+//----------------------------------------------------------------------------------------------------
+namespace
+{
+  // ---- ANONERO ".w2outputs" seed trailer ("ANONW2X", v1) ------------------------------------------
+  // The stock exported_transfer_details blob has NO field for txid, block height/timestamp,
+  // unlock_time, coinbase or the key image VALUE (only flag bits), so a mode switch through it
+  // degrades the wallet's picture. This footer carries that per-output truth. Framing (from the END
+  // of the file): [stock blob][ciphertext][u32-LE ciphertext len]["ANONW2X" 0x01]. It sits OUTSIDE
+  // the stock blob because both the authenticated decrypt and check_stream_state() reject trailing
+  // bytes; import detaches it first (split_w2x_trailer) and old files simply lack the magic.
+  // Ciphertext = encrypt_with_view_secret_key (same envelope as the blob itself). Plaintext:
+  // u32-LE record count, then fixed 121-byte records:
+  //   output_pub(32) txid(32; null = unknown) height(u64 LE; 0 = unknown)
+  //   timestamp(u64 LE unix secs; 0 = unknown) unlock_time(u64 LE)
+  //   flags(u8: 1=coinbase 2=key_image_known 4=spent) key_image(32; zeros unless known)
+  // The identical codec lives in lwsf (anonero-monero/lwsf src/wallet.cpp) — keep them in sync.
+  constexpr char W2X_MAGIC[8] = {'A', 'N', 'O', 'N', 'W', '2', 'X', '\x01'};
+  constexpr size_t W2X_FOOTER_SIZE = sizeof(W2X_MAGIC) + 4;
+  constexpr size_t W2X_RECORD_SIZE =
+    sizeof(crypto::public_key) + sizeof(crypto::hash) + 8 + 8 + 8 + 1 + sizeof(crypto::key_image);
+
+  constexpr uint8_t w2x_flag_coinbase = 1;
+  constexpr uint8_t w2x_flag_key_image_known = 2;
+  constexpr uint8_t w2x_flag_spent = 4;
+
+  void w2x_put32(std::string &s, const uint32_t v)
+  {
+    for (unsigned i = 0; i < 4; ++i)
+      s.push_back(char((v >> (8 * i)) & 0xff));
+  }
+  void w2x_put64(std::string &s, const uint64_t v)
+  {
+    for (unsigned i = 0; i < 8; ++i)
+      s.push_back(char((v >> (8 * i)) & 0xff));
+  }
+  uint32_t w2x_get32(const char *p)
+  {
+    uint32_t v = 0;
+    for (unsigned i = 0; i < 4; ++i)
+      v |= uint32_t(uint8_t(p[i])) << (8 * i);
+    return v;
+  }
+  uint64_t w2x_get64(const char *p)
+  {
+    uint64_t v = 0;
+    for (unsigned i = 0; i < 8; ++i)
+      v |= uint64_t(uint8_t(p[i])) << (8 * i);
+    return v;
+  }
+}
+//----------------------------------------------------------------------------------------------------
+std::string wallet2::export_w2x_trailer() const
+{
+  if (m_transfers.empty())
+    return {};
+
+  // The scan state that knows block timestamps + coinbase is keyed elsewhere: m_payments is a
+  // multimap keyed by PAYMENT ID (the txid lives in payment_details::m_tx_hash) and outgoing/change
+  // txs live in m_confirmed_txs (keyed by txid). Build a txid index once.
+  std::unordered_map<crypto::hash, const payment_details*> pay_by_txid;
+  pay_by_txid.reserve(m_payments.size());
+  for (const auto &p : m_payments)
+    pay_by_txid.emplace(p.second.m_tx_hash, &p.second);
+
+  std::string body;
+  body.reserve(4 + m_transfers.size() * W2X_RECORD_SIZE);
+  w2x_put32(body, uint32_t(m_transfers.size()));
+  for (const transfer_details &td : m_transfers)
+  {
+    const crypto::public_key pub = td.get_public_key();
+    body.append(reinterpret_cast<const char*>(&pub), sizeof(pub));
+    body.append(reinterpret_cast<const char*>(&td.m_txid), sizeof(td.m_txid));
+    w2x_put64(body, td.m_block_height);
+
+    uint64_t timestamp = 0;
+    bool coinbase = false;
+    if (td.m_tx.vin.size() == 1 && td.m_tx.vin[0].type() == typeid(cryptonote::txin_gen))
+      coinbase = true;
+    const auto pay = pay_by_txid.find(td.m_txid);
+    if (pay != pay_by_txid.end())
+    {
+      timestamp = pay->second->m_timestamp;
+      coinbase |= pay->second->m_coinbase;
+    }
+    else
+    {
+      const auto conf = m_confirmed_txs.find(td.m_txid); // change outputs of our own sends
+      if (conf != m_confirmed_txs.end())
+        timestamp = conf->second.m_timestamp;
+    }
+    w2x_put64(body, timestamp);
+    w2x_put64(body, td.m_tx.unlock_time);
+
+    // A REAL key image only: on a watch-only wallet the scan/import_outputs paths store a derived
+    // placeholder with m_key_image_request=true — only a cold-signer import (or a trailer apply)
+    // leaves known=true + request=false. Emitting a placeholder as real would poison the other side.
+    const bool real_ki = td.m_key_image_known && !td.m_key_image_partial &&
+      (!m_watch_only || !td.m_key_image_request);
+    uint8_t flags = 0;
+    if (coinbase)
+      flags |= w2x_flag_coinbase;
+    if (real_ki)
+      flags |= w2x_flag_key_image_known;
+    if (td.m_spent)
+      flags |= w2x_flag_spent;
+    body.push_back(char(flags));
+    const crypto::key_image ki = real_ki ? td.m_key_image : crypto::key_image{};
+    body.append(reinterpret_cast<const char*>(&ki), sizeof(ki));
+  }
+
+  const std::string ct = encrypt_with_view_secret_key(body);
+  std::string out = ct;
+  w2x_put32(out, uint32_t(ct.size()));
+  out.append(W2X_MAGIC, sizeof(W2X_MAGIC));
+  return out;
+}
+//----------------------------------------------------------------------------------------------------
+bool wallet2::split_w2x_trailer(std::string &blob, std::string &trailer_ct)
+{
+  if (blob.size() < W2X_FOOTER_SIZE)
+    return false;
+  if (memcmp(blob.data() + blob.size() - sizeof(W2X_MAGIC), W2X_MAGIC, sizeof(W2X_MAGIC)) != 0)
+    return false;
+  const uint32_t clen = w2x_get32(blob.data() + blob.size() - W2X_FOOTER_SIZE);
+  if (blob.size() < W2X_FOOTER_SIZE + clen)
+    return false;
+  trailer_ct = blob.substr(blob.size() - W2X_FOOTER_SIZE - clen, clen);
+  blob.resize(blob.size() - W2X_FOOTER_SIZE - clen);
+  return true;
+}
+//----------------------------------------------------------------------------------------------------
+size_t wallet2::import_w2x_trailer(const std::string &trailer_ct)
+{
+  const std::string body = decrypt_with_view_secret_key(trailer_ct); // throws on auth failure
+  THROW_WALLET_EXCEPTION_IF(body.size() < 4, error::wallet_internal_error, "w2x trailer truncated");
+  const uint32_t count = w2x_get32(body.data());
+  THROW_WALLET_EXCEPTION_IF(body.size() != 4 + size_t(count) * W2X_RECORD_SIZE,
+    error::wallet_internal_error, "w2x trailer malformed");
+
+  size_t applied = 0;
+  for (uint32_t n = 0; n < count; ++n)
+  {
+    const char *p = body.data() + 4 + size_t(n) * W2X_RECORD_SIZE;
+    crypto::public_key pub{};
+    memcpy(&pub, p, sizeof(pub));
+    p += sizeof(pub);
+    crypto::hash txid{};
+    memcpy(&txid, p, sizeof(txid));
+    p += sizeof(txid);
+    const uint64_t height = w2x_get64(p);
+    p += 8;
+    p += 8; // block timestamp: display-side only for now (the app infers from height meanwhile)
+    const uint64_t unlock_time = w2x_get64(p);
+    p += 8;
+    const uint8_t flags = uint8_t(*p);
+    p += 1;
+    crypto::key_image ki{};
+    memcpy(&ki, p, sizeof(ki));
+
+    const auto it = m_pub_keys.find(pub);
+    if (it == m_pub_keys.end() || it->second >= m_transfers.size())
+      continue;
+    const size_t idx = it->second;
+    transfer_details &td = m_transfers[idx];
+
+    // Fill the tx identity only on entries the etd import synthesized (real-scanned entries already
+    // carry the truth — never overwrite it with sidecar data).
+    if (td.m_txid == crypto::null_hash && td.m_block_height == 0 && txid != crypto::null_hash)
+    {
+      td.m_txid = txid;
+      td.m_block_height = height;
+      td.m_tx.unlock_time = unlock_time; // coinbase 60-block lock rides in here — locked-balance truth
+    }
+
+    if (flags & w2x_flag_key_image_known)
+    {
+      // Replace any watch-only placeholder with the REAL key image and keep m_key_images consistent
+      // (the etd import inserted the placeholder there).
+      if (!td.m_key_image_known || (m_watch_only && td.m_key_image_request) || td.m_key_image == ki)
+      {
+        const auto old = m_key_images.find(td.m_key_image);
+        if (old != m_key_images.end() && old->second == idx)
+          m_key_images.erase(old);
+        td.m_key_image = ki;
+        td.m_key_image_known = true;
+        td.m_key_image_request = false;
+        td.m_key_image_partial = false;
+        m_key_images[ki] = idx;
+      }
+    }
+
+    // Spent knowledge only ever ADDS here (never un-spend from a sidecar: this wallet may know a
+    // spend the exporting side could not see). Height of the spending block is unknown to the
+    // trailer -> 0, same as a daemon is_key_image_spent detection.
+    if ((flags & w2x_flag_spent) && !td.m_spent)
+      set_spent(idx, 0);
+
+    ++applied;
+  }
+  MINFO("w2x trailer: applied " << applied << " of " << count << " records");
+  return applied;
 }
 //----------------------------------------------------------------------------------------------------
 crypto::public_key wallet2::get_multisig_signer_public_key() const

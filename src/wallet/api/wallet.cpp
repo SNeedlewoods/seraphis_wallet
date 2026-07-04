@@ -1381,6 +1381,13 @@ bool WalletImpl::exportOutputs(const string &filename, bool all)
     try
     {
         std::string data = m_wallet->export_outputs_to_str(all);
+        // ANONERO: the ".w2outputs" state-transfer sidecar (mode switch) carries the ANONW2X trailer
+        // (real per-output txid/height/timestamp/unlock_time/coinbase/key image/spent). Any other
+        // filename (cold-signer export) stays byte-compatible with stock wallet2/oxide parsers.
+        static const std::string w2suffix = ".w2outputs";
+        if (filename.size() >= w2suffix.size() &&
+            filename.compare(filename.size() - w2suffix.size(), w2suffix.size(), w2suffix) == 0)
+            data += m_wallet->export_w2x_trailer();
         bool r = m_wallet->save_to_file(filename, data);
         if (!r)
         {
@@ -1419,6 +1426,11 @@ bool WalletImpl::importOutputs(const string &filename)
         return false;
     }
 
+    // ANONERO: detach the optional ANONW2X trailer BEFORE the stock parse (stock wallet2 rejects
+    // trailing bytes in both the authenticated ciphertext and the plaintext); old files lack it.
+    std::string trailer;
+    const bool has_trailer = tools::wallet2::split_w2x_trailer(data, trailer);
+
     try
     {
         size_t n_outputs = m_wallet->import_outputs_from_str(data);
@@ -1429,6 +1441,21 @@ bool WalletImpl::importOutputs(const string &filename)
         LOG_ERROR("Failed to import outputs: " << e.what());
         setStatusError(string(tr("Failed to import outputs: ")) + e.what());
         return false;
+    }
+
+    if (has_trailer)
+    {
+        // Fail-soft: the stock blob already imported (incl. m_spent flags); a corrupt trailer only
+        // loses the per-output enrichment, it must not fail the whole mode switch.
+        try
+        {
+            size_t n_applied = m_wallet->import_w2x_trailer(trailer);
+            LOG_PRINT_L2(std::to_string(n_applied) << " w2x trailer records applied");
+        }
+        catch (const std::exception &e)
+        {
+            LOG_ERROR("Failed to apply w2x trailer (continuing without): " << e.what());
+        }
     }
 
     return true;

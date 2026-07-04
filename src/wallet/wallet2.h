@@ -1660,6 +1660,13 @@ private:
     size_t import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<tools::wallet2::exported_transfer_details>> &outputs);
     size_t import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<tools::wallet2::transfer_details>> &outputs);
     size_t import_outputs_from_str(const std::string &outputs_st);
+    // ANONERO ".w2outputs" trailer ("ANONW2X" v1): per-output txid/height/timestamp/unlock_time/
+    // coinbase/key image/spent, appended AFTER the stock export blob (stock parsers reject trailing
+    // bytes, so it must be detached before import_outputs_from_str). This is how the true wallet
+    // state survives the on-device <-> LWS mode switches without any server rescan.
+    std::string export_w2x_trailer() const;                            //!< "" when there is nothing to export
+    size_t import_w2x_trailer(const std::string &trailer_ct);          //!< apply to m_transfers; returns #applied
+    static bool split_w2x_trailer(std::string &blob, std::string &trailer_ct); //!< detach footer in place
     payment_container export_payments() const;
     void import_payments(const payment_container &payments);
     void import_payments_out(const std::list<std::pair<crypto::hash,wallet2::confirmed_transfer_details>> &confirmed_payments);
