@@ -2583,6 +2583,7 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
 	    td.m_txid = txid;
             td.m_key_image = tx_scan_info[o].ki;
             td.m_key_image_known = !m_watch_only && !m_multisig && !m_background_syncing;
+            bool cold_ki = false;
             if (!td.m_key_image_known)
             {
               // we might have cold signed, and have a mapping to key images
@@ -2591,12 +2592,16 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
               {
                 td.m_key_image = i->second;
                 td.m_key_image_known = true;
+                cold_ki = true;
               }
             }
             if (m_watch_only)
             {
-              // for view wallets, that flag means "we want to request it"
-              td.m_key_image_request = true;
+              // for view wallets, that flag means "we want to request it" — EXCEPT when the signer
+              // already returned this output's key image with the signed tx (change): that one is
+              // REAL, and request=true would make it read as a placeholder (the trailer/export legs
+              // would refuse to carry it and a later etd import could clobber it).
+              td.m_key_image_request = !cold_ki;
             }
             else
             {
@@ -15065,7 +15070,14 @@ size_t wallet2::import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<
 {
   PERF_TIMER(import_outputs);
 
-  THROW_WALLET_EXCEPTION_IF(m_has_ever_refreshed_from_node, error::wallet_internal_error,
+  // ANONERO: a WATCH-ONLY wallet may re-import outputs even after it has refreshed —
+  // m_has_ever_refreshed_from_node is PERSISTED, so the stock guard permanently locked every
+  // long-lived on-device wallet out of the two-file mode switch's import leg ("Hot wallets cannot
+  // import outputs" on the real phone wallet; tests only used fresh never-refreshed wallets). The
+  // guard protected hot wallets from the POSITIONAL clobbering of the stock import; our import
+  // merges by output pubkey (see the per-pubkey snapshot below/above) and a view-only wallet holds
+  // no spend key for a hostile blob to endanger. Full wallets keep the stock guard.
+  THROW_WALLET_EXCEPTION_IF(m_has_ever_refreshed_from_node && !m_watch_only, error::wallet_internal_error,
       "Hot wallets cannot import outputs");
 
   // we can now import piecemeal
@@ -15145,7 +15157,14 @@ size_t wallet2::import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<
 {
   PERF_TIMER(import_outputs);
 
-  THROW_WALLET_EXCEPTION_IF(m_has_ever_refreshed_from_node, error::wallet_internal_error,
+  // ANONERO: a WATCH-ONLY wallet may re-import outputs even after it has refreshed —
+  // m_has_ever_refreshed_from_node is PERSISTED, so the stock guard permanently locked every
+  // long-lived on-device wallet out of the two-file mode switch's import leg ("Hot wallets cannot
+  // import outputs" on the real phone wallet; tests only used fresh never-refreshed wallets). The
+  // guard protected hot wallets from the POSITIONAL clobbering of the stock import; our import
+  // merges by output pubkey (see the per-pubkey snapshot below/above) and a view-only wallet holds
+  // no spend key for a hostile blob to endanger. Full wallets keep the stock guard.
+  THROW_WALLET_EXCEPTION_IF(m_has_ever_refreshed_from_node && !m_watch_only, error::wallet_internal_error,
       "Hot wallets cannot import outputs");
 
   // we can now import piecemeal
