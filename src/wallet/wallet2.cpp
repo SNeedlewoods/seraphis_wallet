@@ -4019,7 +4019,11 @@ void wallet2::fast_refresh(uint64_t stop_height, uint64_t &blocks_start_height, 
     std::map<uint64_t, crypto::hash>::const_iterator it = pts.upper_bound(stop_height);
     if (it != pts.begin()) { --it; ff_height = it->first; ff_hash = it->second; }
   }
-  if (ff_height > 0 && m_blockchain.size() - 1 < ff_height && !force)
+  // Never fast-forward onto checkpoint hashes when talking to a mismatched/fakechain daemon
+  // (regtest presents as MAINNET, so the mainnet checkpoint hash does NOT exist on its chain;
+  // seeding m_blockchain with it forces a detach on the next pull, and detach_blockchain ERASES
+  // every transfer above the fork point — imported outputs with real heights vanish).
+  if (ff_height > 0 && m_blockchain.size() - 1 < ff_height && !force && !m_allow_mismatched_daemon_version)
   {
     // we will drop all these, so don't bother getting them
     uint64_t missing_blocks = ff_height - m_blockchain.size();
