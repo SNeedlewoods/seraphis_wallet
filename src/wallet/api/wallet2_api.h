@@ -1235,6 +1235,40 @@ struct Wallet
      * NOTE: appended at the END of the interface on purpose (see getSubaddressLookaheadError).
      */
     virtual std::string getBlockHashProofWarning() const { return std::string(); }
+
+    /*!
+     * \brief getServerScanMajorLimit - highest account (major) index the light-wallet server is
+     * confirmed to be scanning, INCLUSIVE. Accounts above this are outside the server's watch window
+     * and any funds received to them are invisible until the server is provisioned wider (or the
+     * wallet is switched to keys-on-device, which scans everything locally). An on-device (wallet2)
+     * wallet has no server window, so the default returns "unlimited" (0xFFFFFFFF) — every account is
+     * scanned. A light wallet that has not yet completed a login also returns unlimited (window
+     * unknown → don't cry wolf). Override in the LWS backend.
+     * NOTE: appended at the END of the interface on purpose (see getSubaddressLookaheadError).
+     */
+    virtual uint32_t getServerScanMajorLimit() const { return 0xFFFFFFFFu; }
+
+    /*!
+     * \brief getServerScanMinorLimit - highest subaddress (minor) index the light-wallet server is
+     * confirmed to be scanning WITHIN the given account, INCLUSIVE. Subaddresses above this are
+     * outside the server's watch window (funds sent to them will not be seen). Returns 0 when the
+     * whole account is beyond getServerScanMajorLimit(). On-device / pre-login returns "unlimited"
+     * (0xFFFFFFFF). Override in the LWS backend.
+     * NOTE: appended at the END of the interface on purpose (see getSubaddressLookaheadError).
+     */
+    virtual uint32_t getServerScanMinorLimit(uint32_t accountIndex) const { return 0xFFFFFFFFu; }
+
+    /*!
+     * \brief isSubaddressScanned - convenience predicate: true iff the light-wallet server's watch
+     * window covers subaddress (accountIndex, addressIndex). Composed from the two limits above, so it
+     * is automatically "true for everything" on an on-device wallet and on a light wallet whose window
+     * is not yet known. NOT virtual — backends override the two limit getters, not this.
+     */
+    bool isSubaddressScanned(uint32_t accountIndex, uint32_t addressIndex) const
+    {
+        return accountIndex <= getServerScanMajorLimit()
+            && addressIndex <= getServerScanMinorLimit(accountIndex);
+    }
 };
 
 /**
