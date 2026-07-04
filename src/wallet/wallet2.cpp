@@ -15408,19 +15408,26 @@ namespace
   // the stock blob because both the authenticated decrypt and check_stream_state() reject trailing
   // bytes; import detaches it first (split_w2x_trailer) and old files simply lack the magic.
   // Ciphertext = encrypt_with_view_secret_key (same envelope as the blob itself). Plaintext:
-  // u32-LE record count, then fixed 121-byte records:
+  // u32-LE record count, then fixed 153-byte records:
   //   output_pub(32) txid(32; null = unknown) height(u64 LE; 0 = unknown)
   //   timestamp(u64 LE unix secs; 0 = unknown) unlock_time(u64 LE)
-  //   flags(u8: 1=coinbase 2=key_image_known 4=spent) key_image(32; zeros unless known)
+  //   flags(u8: 1=coinbase 2=key_image_known 4=spent 8=mask_known)
+  //   key_image(32; zeros unless known) rct_mask(32; zeros unless known)
+  // The RingCT commitment mask rides along because the stock etd blob only carries an m_rct BIT and
+  // the import guesses identity — wrong for everything but coinbase, so a switched wallet's RingCT
+  // outputs failed the decoy-fetch commitment check at spend time ("Daemon response did not include
+  // the requested real output"). The exporting side knows the true mask for every output era.
   // The identical codec lives in lwsf (anonero-monero/lwsf src/wallet.cpp) — keep them in sync.
   constexpr char W2X_MAGIC[8] = {'A', 'N', 'O', 'N', 'W', '2', 'X', '\x01'};
   constexpr size_t W2X_FOOTER_SIZE = sizeof(W2X_MAGIC) + 4;
   constexpr size_t W2X_RECORD_SIZE =
-    sizeof(crypto::public_key) + sizeof(crypto::hash) + 8 + 8 + 8 + 1 + sizeof(crypto::key_image);
+    sizeof(crypto::public_key) + sizeof(crypto::hash) + 8 + 8 + 8 + 1 + sizeof(crypto::key_image) +
+    sizeof(rct::key);
 
   constexpr uint8_t w2x_flag_coinbase = 1;
   constexpr uint8_t w2x_flag_key_image_known = 2;
   constexpr uint8_t w2x_flag_spent = 4;
+  constexpr uint8_t w2x_flag_mask_known = 8;
 
   void w2x_put32(std::string &s, const uint32_t v)
   {
@@ -15495,6 +15502,10 @@ std::string wallet2::export_w2x_trailer() const
     // leaves known=true + request=false. Emitting a placeholder as real would poison the other side.
     const bool real_ki = td.m_key_image_known && !td.m_key_image_partial &&
       (!m_watch_only || !td.m_key_image_request);
+    // A trustworthy mask only: identity is the correct mask solely for coinbase outputs — on a
+    // non-coinbase RingCT output it is the tell of a legacy (trailer-less) import that guessed.
+    // Omitting the flag lets the consumer fall back to its own (BP2+) derivation.
+    const bool real_mask = td.m_rct && (coinbase || !(td.m_mask == rct::identity()));
     uint8_t flags = 0;
     if (coinbase)
       flags |= w2x_flag_coinbase;
@@ -15502,9 +15513,13 @@ std::string wallet2::export_w2x_trailer() const
       flags |= w2x_flag_key_image_known;
     if (td.m_spent)
       flags |= w2x_flag_spent;
+    if (real_mask)
+      flags |= w2x_flag_mask_known;
     body.push_back(char(flags));
     const crypto::key_image ki = real_ki ? td.m_key_image : crypto::key_image{};
     body.append(reinterpret_cast<const char*>(&ki), sizeof(ki));
+    const rct::key mask = real_mask ? td.m_mask : rct::key{};
+    body.append(reinterpret_cast<const char*>(&mask), sizeof(mask));
   }
 
   const std::string ct = encrypt_with_view_secret_key(body);
@@ -15555,6 +15570,9 @@ size_t wallet2::import_w2x_trailer(const std::string &trailer_ct)
     p += 1;
     crypto::key_image ki{};
     memcpy(&ki, p, sizeof(ki));
+    p += sizeof(ki);
+    rct::key mask{};
+    memcpy(&mask, p, sizeof(mask));
 
     const auto it = m_pub_keys.find(pub);
     if (it == m_pub_keys.end() || it->second >= m_transfers.size())
@@ -15587,6 +15605,11 @@ size_t wallet2::import_w2x_trailer(const std::string &trailer_ct)
         m_key_images[ki] = idx;
       }
     }
+
+    // The EXACT commitment mask (any output era). The etd import guessed identity — correct only
+    // for coinbase — which failed the decoy-fetch commitment check at spend time.
+    if ((flags & w2x_flag_mask_known) && td.m_rct)
+      td.m_mask = mask;
 
     // Spent knowledge only ever ADDS here (never un-spend from a sidecar: this wallet may know a
     // spend the exporting side could not see). Height of the spending block is unknown to the
