@@ -1305,6 +1305,24 @@ bool WalletImpl::submitTransaction(const string &fileName) {
   
   if(!transaction->commit()) {
     setStatusError(transaction->m_errorString);
+    // Self-heal (view-only): a rejected cold-signed broadcast is usually a double-spend — an input was
+    // already spent by another instance or an old cold-sign. Confirm ONLY this tx's inputs against the
+    // daemon (is_key_image_spent) and mark any already-spent, so the balance self-corrects instead of
+    // leaving them counted as spendable (the "phantom available" that lets the wallet rebuild the same
+    // double-spend). Scoped to this tx's inputs, mirroring lwsf's submitTransaction, so we don't disclose
+    // the whole wallet's key images the way rescan_spent() would. Best-effort — never turn a failed
+    // submit into a crash.
+    try {
+      std::vector<crypto::key_image> kis;
+      for (const auto& ptx : transaction->m_pending_tx)
+        for (const auto& in : ptx.tx.vin)
+          if (in.type() == typeid(cryptonote::txin_to_key))
+            kis.push_back(boost::get<cryptonote::txin_to_key>(in).k_image);
+      if (!kis.empty())
+        m_wallet->rescan_spent_key_images(kis);
+    } catch (const std::exception &e) {
+      LOG_ERROR("rejected-broadcast spent recheck failed: " << e.what());
+    }
     return false;
   }
 

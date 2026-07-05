@@ -7433,6 +7433,51 @@ void wallet2::rescan_spent()
   }
 }
 //----------------------------------------------------------------------------------------------------
+size_t wallet2::rescan_spent_key_images(const std::vector<crypto::key_image>& key_images)
+{
+  if (key_images.empty())
+    return 0;
+  // Ask the daemon about ONLY these key images (not the whole wallet, unlike rescan_spent) so a
+  // rejected-broadcast recheck discloses just the failed tx's inputs.
+  COMMAND_RPC_IS_KEY_IMAGE_SPENT::request req = AUTO_VAL_INIT(req);
+  COMMAND_RPC_IS_KEY_IMAGE_SPENT::response daemon_resp = AUTO_VAL_INIT(daemon_resp);
+  req.key_images.reserve(key_images.size());
+  for (const auto& ki : key_images)
+    req.key_images.push_back(string_tools::pod_to_hex(ki));
+  {
+    const boost::lock_guard<boost::recursive_mutex> lock{m_daemon_rpc_mutex};
+    uint64_t pre_call_credits = m_rpc_payment_state.credits;
+    req.client = get_client_signature();
+    bool r = epee::net_utils::invoke_http_json("/is_key_image_spent", req, daemon_resp, *m_http_client, rpc_timeout);
+    THROW_ON_RPC_RESPONSE_ERROR(r, {}, daemon_resp, "is_key_image_spent", error::is_key_image_spent_error, get_rpc_status(daemon_resp.status));
+    THROW_WALLET_EXCEPTION_IF(daemon_resp.spent_status.size() != key_images.size(), error::wallet_internal_error,
+      "daemon returned wrong response for is_key_image_spent, wrong amounts count = " +
+      std::to_string(daemon_resp.spent_status.size()) + ", expected " + std::to_string(key_images.size()));
+    check_rpc_cost("/is_key_image_spent", daemon_resp.credits, pre_call_credits, key_images.size() * COST_PER_KEY_IMAGE);
+  }
+  // Mark any owned, key-image-known output the daemon reports spent.
+  size_t newly_spent = 0;
+  for (size_t k = 0; k < key_images.size(); ++k)
+  {
+    if (daemon_resp.spent_status[k] == COMMAND_RPC_IS_KEY_IMAGE_SPENT::UNSPENT)
+      continue;
+    for (size_t i = 0; i < m_transfers.size(); ++i)
+    {
+      transfer_details& td = m_transfers[i];
+      if (!td.m_key_image_known || td.m_key_image_partial || td.m_spent)
+        continue;
+      if (td.m_key_image == key_images[k])
+      {
+        LOG_PRINT_L0("Marking output " << i << "(" << td.m_key_image << ") as spent (scoped rejected-broadcast recheck)");
+        set_spent(i, 0); // unknown spent height
+        ++newly_spent;
+        break;
+      }
+    }
+  }
+  return newly_spent;
+}
+//----------------------------------------------------------------------------------------------------
 void wallet2::rescan_blockchain(bool hard, bool refresh, bool keep_key_images)
 {
   CHECK_AND_ASSERT_THROW_MES(!hard || !keep_key_images, "Cannot preserve key images on hard rescan");

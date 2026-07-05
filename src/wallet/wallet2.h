@@ -1254,6 +1254,11 @@ private:
 
     uint64_t get_blockchain_current_height() const { return m_light_wallet_blockchain_height ? m_light_wallet_blockchain_height : m_blockchain.size(); }
     void rescan_spent();
+    // Scoped spent-check: confirm ONLY the given key images against the daemon (is_key_image_spent) and
+    // mark any matching owned output spent. Unlike rescan_spent() (whole wallet) this discloses just
+    // these key images — used after a rejected cold-signed broadcast to self-correct only that tx's
+    // inputs. Returns the number of outputs newly marked spent.
+    size_t rescan_spent_key_images(const std::vector<crypto::key_image>& key_images);
     void rescan_blockchain(bool hard, bool refresh = true, bool keep_key_images = false);
     bool is_transfer_unlocked(const transfer_details& td);
     bool is_transfer_unlocked(uint64_t unlock_time, uint64_t block_height);
