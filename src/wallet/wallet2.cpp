@@ -11401,7 +11401,12 @@ std::vector<wallet2::pending_tx> wallet2::create_transactions_2(std::vector<cryp
       MDEBUG("Ignoring output " << i << " of amount " << print_money(td.amount()) << " which is below fractional threshold " << print_money(fractional_threshold));
       continue;
     }
-    if (!is_spent(td, false) && !td.m_frozen && !td.m_key_image_partial && td.m_key_image_known && (use_rct ? true : !td.is_rct()) && is_transfer_unlocked(td) && td.m_subaddr_index.major == subaddr_account && subaddr_indices.count(td.m_subaddr_index.minor) == 1)
+    // NB: the Airgap patch previously added `td.m_key_image_known &&` here, gating targeted (typed-amount)
+    // spends on a prior key-image sync. Removed so a view-only wallet builds the unsigned tx lazily with
+    // placeholder key images (0100..00) that the cold signer replaces at sign time — matching stock wallet2
+    // and create_transactions_all (sweep). An already-spent input self-corrects when the daemon rejects the
+    // broadcast. (create_transactions_single at ~12047 legitimately keeps m_key_image_known: it matches a ki.)
+    if (!is_spent(td, false) && !td.m_frozen && !td.m_key_image_partial && (use_rct ? true : !td.is_rct()) && is_transfer_unlocked(td) && td.m_subaddr_index.major == subaddr_account && subaddr_indices.count(td.m_subaddr_index.minor) == 1)
     {
       if (td.amount() > m_ignore_outputs_above || td.amount() < m_ignore_outputs_below)
       {
