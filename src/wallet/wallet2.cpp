@@ -15437,7 +15437,7 @@ namespace
   // outputs failed the decoy-fetch commitment check at spend time ("Daemon response did not include
   // the requested real output"). The exporting side knows the true mask for every output era.
   // The identical codec lives in lwsf (anonero-monero/lwsf src/wallet.cpp) — keep them in sync.
-  constexpr char W2X_MAGIC[8] = {'A', 'N', 'O', 'N', 'W', '2', 'X', '\x01'};
+  constexpr char W2X_MAGIC[8] = {'A', 'N', 'O', 'N', 'W', '2', 'X', '\x02'};  // v2 adds outgoing-tx section
   constexpr size_t W2X_FOOTER_SIZE = sizeof(W2X_MAGIC) + 4;
   constexpr size_t W2X_RECORD_SIZE =
     sizeof(crypto::public_key) + sizeof(crypto::hash) + 8 + 8 + 8 + 1 + sizeof(crypto::key_image) +
@@ -15541,6 +15541,57 @@ std::string wallet2::export_w2x_trailer() const
     body.append(reinterpret_cast<const char*>(&mask), sizeof(mask));
   }
 
+  // ---- v2 outgoing-tx section (our own sends) --------------------------------------------------
+  // The output records above describe RECEIVED outputs only; they carry nothing about the txs WE sent.
+  // A mode switch through them therefore loses (a) each send's tx secret key r -> payment proofs break
+  // in the other mode, and (b) the destination/amount -> the send renders as its total output, not the
+  // amount paid. This section carries both. Appended inside the same encrypted body, after the output
+  // records:  [u32 tx_count] then per tx:
+  //   txid(32) tx_key(32; 0 = unknown) n_add(u8) additional[32*n_add]
+  //   fee(u64 LE) height(u64 LE) timestamp(u64 LE) n_dests(u8)
+  //     per dest: amount(u64 LE) addr_len(u8) addr[addr_len]  (base58 dest string)
+  // The identical codec lives in lwsf (anonero-monero/lwsf src/wallet.cpp) — keep them in sync.
+  {
+    std::string tx_body;
+    uint32_t tx_count = 0;
+    for (const auto &ctx : m_confirmed_txs)
+    {
+      const crypto::hash &txid = ctx.first;
+      const confirmed_transfer_details &d = ctx.second;
+      crypto::secret_key tx_key = crypto::null_skey;
+      std::vector<crypto::secret_key> add_keys;
+      const auto tk = m_tx_keys.find(txid);
+      if (tk != m_tx_keys.end()) tx_key = tk->second;
+      const auto ak = m_additional_tx_keys.find(txid);
+      if (ak != m_additional_tx_keys.end()) add_keys = ak->second;
+
+      tx_body.append(reinterpret_cast<const char*>(&txid), sizeof(txid));
+      tx_body.append(reinterpret_cast<const char*>(&tx_key), sizeof(tx_key));
+      tx_body.push_back(char(uint8_t(std::min<size_t>(add_keys.size(), 255))));
+      for (size_t a = 0; a < add_keys.size() && a < 255; ++a)
+        tx_body.append(reinterpret_cast<const char*>(&add_keys[a]), sizeof(crypto::secret_key));
+
+      const uint64_t fee = (d.m_amount_in >= d.m_amount_out) ? (d.m_amount_in - d.m_amount_out) : 0;
+      w2x_put64(tx_body, fee);
+      w2x_put64(tx_body, d.m_block_height);
+      w2x_put64(tx_body, d.m_timestamp);
+      const uint8_t n_dests = uint8_t(std::min<size_t>(d.m_dests.size(), 255));
+      tx_body.push_back(char(n_dests));
+      for (uint8_t dd = 0; dd < n_dests; ++dd)
+      {
+        const cryptonote::tx_destination_entry &dst = d.m_dests[dd];
+        w2x_put64(tx_body, dst.amount);
+        const std::string addr = get_account_address_as_str(m_nettype, dst.is_subaddress, dst.addr);
+        const uint8_t alen = uint8_t(std::min<size_t>(addr.size(), 255));
+        tx_body.push_back(char(alen));
+        tx_body.append(addr.data(), alen);
+      }
+      ++tx_count;
+    }
+    w2x_put32(body, tx_count);
+    body += tx_body;
+  }
+
   const std::string ct = encrypt_with_view_secret_key(body);
   std::string out = ct;
   w2x_put32(out, uint32_t(ct.size()));
@@ -15552,7 +15603,9 @@ bool wallet2::split_w2x_trailer(std::string &blob, std::string &trailer_ct)
 {
   if (blob.size() < W2X_FOOTER_SIZE)
     return false;
-  if (memcmp(blob.data() + blob.size() - sizeof(W2X_MAGIC), W2X_MAGIC, sizeof(W2X_MAGIC)) != 0)
+  // Match the 7-char prefix only; accept any version byte (v1 = output records, v2 adds the
+  // outgoing-tx section) so a v1 file still detaches cleanly on a v2 build and vice-versa.
+  if (memcmp(blob.data() + blob.size() - sizeof(W2X_MAGIC), W2X_MAGIC, 7) != 0)
     return false;
   const uint32_t clen = w2x_get32(blob.data() + blob.size() - W2X_FOOTER_SIZE);
   if (blob.size() < W2X_FOOTER_SIZE + clen)
@@ -15567,7 +15620,8 @@ size_t wallet2::import_w2x_trailer(const std::string &trailer_ct)
   const std::string body = decrypt_with_view_secret_key(trailer_ct); // throws on auth failure
   THROW_WALLET_EXCEPTION_IF(body.size() < 4, error::wallet_internal_error, "w2x trailer truncated");
   const uint32_t count = w2x_get32(body.data());
-  THROW_WALLET_EXCEPTION_IF(body.size() != 4 + size_t(count) * W2X_RECORD_SIZE,
+  // v2 may append an outgoing-tx section after the output records, so require AT LEAST the records.
+  THROW_WALLET_EXCEPTION_IF(body.size() < 4 + size_t(count) * W2X_RECORD_SIZE,
     error::wallet_internal_error, "w2x trailer malformed");
 
   size_t applied = 0;
@@ -15638,6 +15692,77 @@ size_t wallet2::import_w2x_trailer(const std::string &trailer_ct)
 
     ++applied;
   }
+
+  // ---- v2 outgoing-tx section (optional; absent in v1 files) ------------------------------------
+  // Restores each of our sends' tx secret key (so getTxKey / payment proofs work in this mode) and,
+  // when this wallet's own record lacks them, the destinations/amount (so the send shows the amount
+  // paid, not its total output). Bounds-checked throughout; a short/garbled tail just stops early.
+  size_t off = 4 + size_t(count) * W2X_RECORD_SIZE;
+  if (off + 4 <= body.size())
+  {
+    const uint32_t tx_count = w2x_get32(body.data() + off);
+    off += 4;
+    for (uint32_t t = 0; t < tx_count; ++t)
+    {
+      if (off + sizeof(crypto::hash) + sizeof(crypto::secret_key) + 1 > body.size()) break;
+      crypto::hash txid{};
+      memcpy(&txid, body.data() + off, sizeof(txid)); off += sizeof(txid);
+      crypto::secret_key tx_key{};
+      memcpy(&tx_key, body.data() + off, sizeof(tx_key)); off += sizeof(tx_key);
+      const uint8_t n_add = uint8_t(body[off]); off += 1;
+      if (off + size_t(n_add) * sizeof(crypto::secret_key) > body.size()) break;
+      std::vector<crypto::secret_key> add_keys(n_add);
+      for (uint8_t a = 0; a < n_add; ++a) { memcpy(&add_keys[a], body.data() + off, sizeof(crypto::secret_key)); off += sizeof(crypto::secret_key); }
+      if (off + 8 + 8 + 8 + 1 > body.size()) break;
+      const uint64_t fee = w2x_get64(body.data() + off); off += 8;
+      const uint64_t height = w2x_get64(body.data() + off); off += 8;
+      const uint64_t timestamp = w2x_get64(body.data() + off); off += 8;
+      const uint8_t n_dests = uint8_t(body[off]); off += 1;
+      std::vector<cryptonote::tx_destination_entry> dests;
+      uint64_t sent = 0;
+      bool dest_ok = true;
+      for (uint8_t dd = 0; dd < n_dests; ++dd)
+      {
+        if (off + 8 + 1 > body.size()) { dest_ok = false; break; }
+        const uint64_t amount = w2x_get64(body.data() + off); off += 8;
+        const uint8_t alen = uint8_t(body[off]); off += 1;
+        if (off + alen > body.size()) { dest_ok = false; break; }
+        const std::string addr(body.data() + off, alen); off += alen;
+        cryptonote::address_parse_info info{};
+        if (cryptonote::get_account_address_from_str(info, m_nettype, addr))
+        {
+          cryptonote::tx_destination_entry de(amount, info.address, info.is_subaddress);
+          dests.push_back(de);
+          sent += amount;
+        }
+      }
+      if (!dest_ok) break;
+
+      // The payment-proof-critical bit: persist the real tx secret key(s) (skip an all-zero = unknown).
+      // NB do NOT call set_tx_key() here: it fetches the tx from the daemon and validates the key against
+      // the tx pubkey — impossible during an OFFLINE trust-local seed. The trailer is already
+      // view-key-authenticated, so write straight into the maps get_tx_key reads.
+      if (memcmp(&tx_key, &crypto::null_skey, sizeof(tx_key)) != 0)
+      {
+        m_tx_keys[txid] = tx_key;
+        if (!add_keys.empty())
+          m_additional_tx_keys[txid] = add_keys;
+      }
+
+      // Fix the amount display: fill this send's destinations if our own record lacks them (a view-only
+      // wallet2 that only learned of the spend via a key image knows the amount-out but not the payees).
+      confirmed_transfer_details &ctd = m_confirmed_txs[txid];
+      if (ctd.m_dests.empty() && !dests.empty())
+      {
+        ctd.m_dests = std::move(dests);
+        ctd.m_amount_out = sent;                 // amount paid to others (excludes change)
+        ctd.m_amount_in = sent + fee;            // so fee = in - out stays consistent for the UI
+        if (ctd.m_block_height == 0) ctd.m_block_height = height;
+        if (ctd.m_timestamp == 0)    ctd.m_timestamp = timestamp;
+      }
+    }
+  }
+
   MINFO("w2x trailer: applied " << applied << " of " << count << " records");
   return applied;
 }
