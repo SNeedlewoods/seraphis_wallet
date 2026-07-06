@@ -1329,6 +1329,34 @@ std::string WalletImpl::describeSignedTx(const std::string &fileName) {
   return out.str();
 }
 
+std::string WalletImpl::getSignedTxHex(const std::string &fileName) {
+  clearStatus();
+  std::vector<tools::wallet2::pending_tx> ptx;
+  try {
+    // Same load path as submitTransaction/describeSignedTx: decrypt the cold-signed blob with our
+    // view key. Purely local — no daemon/network access, so it is safe to call before (or alongside)
+    // the primary submitTransaction() relay.
+    if (checkBackgroundSync("cannot read signed tx") || !m_wallet->load_tx(fileName, ptx)) {
+      const std::string es = errorString();
+      return std::string("ERROR:") + (es.empty() ? "failed to load signed transaction" : es);
+    }
+  } catch (const std::exception &e) {
+    return std::string("ERROR:") + e.what();
+  } catch (...) {
+    return std::string("ERROR:unhandled exception loading signed transaction");
+  }
+
+  std::ostringstream out;
+  out << "OK";
+  for (const auto &p : ptx) {
+    // The exact wire blob a daemon expects as `tx_as_hex` in /send_raw_transaction — identical to what
+    // wallet2's commit_tx would relay, so fanning it out to more nodes just widens propagation.
+    const cryptonote::blobdata blob = cryptonote::tx_to_blob(p.tx);
+    out << '\n' << epee::string_tools::buff_to_hex_nodelimer(blob);
+  }
+  return out.str();
+}
+
 bool WalletImpl::submitTransaction(const string &fileName) {
   clearStatus();
   if (checkBackgroundSync("cannot submit tx"))

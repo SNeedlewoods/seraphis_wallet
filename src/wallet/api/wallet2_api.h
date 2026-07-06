@@ -1284,6 +1284,23 @@ struct Wallet
         return accountIndex <= getServerScanMajorLimit()
             && addressIndex <= getServerScanMinorLimit(accountIndex);
     }
+
+    /*!
+     * \brief getSignedTxHex - load a SIGNED tx set from file WITHOUT broadcasting and return the raw
+     *                         wire hex of each contained transaction. This is the multi-broadcast
+     *                         counterpart of submitTransaction(): submitTransaction relays to (and does
+     *                         the wallet-side spend bookkeeping against) the single connected daemon,
+     *                         while this hands the caller the exact `tx_as_hex` it can POST to several
+     *                         nodes' /send_raw_transaction so a single flaky/malicious daemon can't
+     *                         silently drop a cold-signed tx. No daemon/network access is used here.
+     * \param fileName        - path to the signed tx file (as produced by the air-gapped signer)
+     * \return                - "OK\n" then one hex string per line (a split cold-sign set has several);
+     *                          or "ERROR:<message>" if the blob can't be read. Default returns
+     *                          "ERROR:not supported" for backends without on-device cold-sign broadcast.
+     * NOTE: appended at the END of the interface on purpose (see getServerScanMinorLimit) so existing
+     * vtable slot indices are unchanged for the prebuilt LWS backend, which never calls this.
+     */
+    virtual std::string getSignedTxHex(const std::string &fileName) { (void)fileName; return "ERROR:not supported"; }
 };
 
 /**
