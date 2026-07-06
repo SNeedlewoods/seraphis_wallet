@@ -15649,10 +15649,9 @@ std::string wallet2::export_w2x_trailer() const
   {
     std::string tx_body;
     uint32_t tx_count = 0;
-    for (const auto &ctx : m_confirmed_txs)
+    const auto append_send = [&](const crypto::hash &txid, uint64_t fee, uint64_t height,
+                                 uint64_t timestamp, const std::vector<cryptonote::tx_destination_entry> &dests)
     {
-      const crypto::hash &txid = ctx.first;
-      const confirmed_transfer_details &d = ctx.second;
       crypto::secret_key tx_key = crypto::null_skey;
       std::vector<crypto::secret_key> add_keys;
       const auto tk = m_tx_keys.find(txid);
@@ -15666,15 +15665,14 @@ std::string wallet2::export_w2x_trailer() const
       for (size_t a = 0; a < add_keys.size() && a < 255; ++a)
         tx_body.append(reinterpret_cast<const char*>(&add_keys[a]), sizeof(crypto::secret_key));
 
-      const uint64_t fee = (d.m_amount_in >= d.m_amount_out) ? (d.m_amount_in - d.m_amount_out) : 0;
       w2x_put64(tx_body, fee);
-      w2x_put64(tx_body, d.m_block_height);
-      w2x_put64(tx_body, d.m_timestamp);
-      const uint8_t n_dests = uint8_t(std::min<size_t>(d.m_dests.size(), 255));
+      w2x_put64(tx_body, height);
+      w2x_put64(tx_body, timestamp);
+      const uint8_t n_dests = uint8_t(std::min<size_t>(dests.size(), 255));
       tx_body.push_back(char(n_dests));
       for (uint8_t dd = 0; dd < n_dests; ++dd)
       {
-        const cryptonote::tx_destination_entry &dst = d.m_dests[dd];
+        const cryptonote::tx_destination_entry &dst = dests[dd];
         w2x_put64(tx_body, dst.amount);
         const std::string addr = get_account_address_as_str(m_nettype, dst.is_subaddress, dst.addr);
         const uint8_t alen = uint8_t(std::min<size_t>(addr.size(), 255));
@@ -15682,6 +15680,27 @@ std::string wallet2::export_w2x_trailer() const
         tx_body.append(addr.data(), alen);
       }
       ++tx_count;
+    };
+
+    for (const auto &ctx : m_confirmed_txs)
+    {
+      const confirmed_transfer_details &d = ctx.second;
+      const uint64_t fee = (d.m_amount_in >= d.m_amount_out) ? (d.m_amount_in - d.m_amount_out) : 0;
+      append_send(ctx.first, fee, d.m_block_height, d.m_timestamp, d.m_dests);
+    }
+    // ANONERO: also carry UNCONFIRMED sends (a just-broadcast cold-signed tx still in the mempool).
+    // They live in m_unconfirmed_txs at height 0; without this, a switch to LWS made BEFORE the tx
+    // confirms drops its recipient(s) + tx secret key, so lwsf can only recover the amount from the
+    // server (no payee, no payment proof). Carry them at height 0 (the mirror of the on-device import
+    // backfill in the other direction); the lwsf import leaves height unset for 0 so the send shows as
+    // pending, and the server's later confirmation fills in the real height/timestamp.
+    for (const auto &utx : m_unconfirmed_txs)
+    {
+      if (utx.second.m_state == unconfirmed_transfer_details::failed) continue; // never carry a failed send
+      if (m_confirmed_txs.find(utx.first) != m_confirmed_txs.end()) continue;   // already carried above
+      const unconfirmed_transfer_details &d = utx.second;
+      const uint64_t fee = (d.m_amount_in >= d.m_amount_out) ? (d.m_amount_in - d.m_amount_out) : 0;
+      append_send(utx.first, fee, 0 /*unconfirmed — no height yet*/, d.m_timestamp, d.m_dests);
     }
     w2x_put32(body, tx_count);
     body += tx_body;
