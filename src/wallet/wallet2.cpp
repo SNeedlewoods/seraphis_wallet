@@ -2374,6 +2374,26 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
   if (!miner_tx && !pool)
     process_unconfirmed(txid, tx, height);
 
+  // ANONERO: a send seeded via the ANONW2X trailer (LWS->on-device Mode switch) that had NOT yet
+  // confirmed at export time carries m_block_height==0 — lwsf's cold-sign submit records the outgoing
+  // (dests/amount/tx_key) the instant it is broadcast, before it is mined, so it has no height yet. On
+  // import that becomes an m_confirmed_txs entry at height 0, and get_payments_out drops every confirmed
+  // tx with m_block_height<=min_height (min_height defaults to 0), so the send NEVER appears in history
+  // even though it is on-chain — meanwhile its change output comes back as a plain incoming when the
+  // wallet rescans forward. When we scan the block that actually contains the tx, backfill the real
+  // height/timestamp so the outgoing row surfaces. (A view-only seed doesn't know the spent inputs' key
+  // images, so process_outgoing() below is never reached for this tx and cannot do the backfill itself.)
+  if (!pool && height > 0)
+  {
+    auto ctd = m_confirmed_txs.find(txid);
+    if (ctd != m_confirmed_txs.end() && ctd->second.m_block_height == 0)
+    {
+      ctd->second.m_block_height = height;
+      if (ctd->second.m_timestamp == 0)
+        ctd->second.m_timestamp = ts;
+    }
+  }
+
   // per receiving subaddress index
   std::unordered_map<cryptonote::subaddress_index, uint64_t> tx_money_got_in_outs;
   std::unordered_map<cryptonote::subaddress_index, amounts_container> tx_amounts_individual_outs;
@@ -2648,6 +2668,31 @@ void wallet2::process_new_transaction(const crypto::hash &txid, const cryptonote
           }
           total_received_1 += amount;
           notify = true;
+        }
+        else if (m_transfers[kit->second].m_global_output_index == o_indices[o])
+        {
+          // ANONERO: this output is already ours AND is the very same on-chain output (same global
+          // output index) being re-scanned — import_outputs() seeded it (LWS->on-device Mode switch)
+          // and this block was then re-scanned as the reopened wallet caught up. It is NOT a
+          // duplicate pubkey to discard: it was genuinely received in THIS tx. Count it (keep
+          // tx_money_got_in_outs, and mirror it in total_received_1 so the consistency check below
+          // still balances) instead of subtracting it the way the duplicate-pubkey path does — that
+          // subtraction netted a coinbase tx (whose sole output is this one) to a 0.00000 history
+          // row after the switch. Backfill the tx identity if the seed left it a placeholder so the
+          // entry reads as fully scanned; never overwrite a real-scanned entry.
+          if (!pool)
+          {
+            boost::unique_lock<boost::shared_mutex> lock(m_transfers_mutex);
+            transfer_details &td = m_transfers[kit->second];
+            if (td.m_txid == crypto::null_hash)
+            {
+              td.m_block_height = height;
+              td.m_internal_output_index = o;
+              td.m_tx = (const cryptonote::transaction_prefix&)tx;
+              td.m_txid = txid;
+            }
+          }
+          total_received_1 += tx_scan_info[o].amount;
         }
 	else if (m_transfers[kit->second].m_spent || m_transfers[kit->second].amount() >= tx_scan_info[o].amount)
         {
