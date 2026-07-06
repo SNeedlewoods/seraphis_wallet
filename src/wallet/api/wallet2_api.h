@@ -951,7 +951,22 @@ struct Wallet
     * \return                  - true on success
     */
     virtual bool submitTransaction(const std::string &fileName) = 0;
-    
+
+   /*!
+    * \brief describeSignedTx - load a SIGNED tx set from file WITHOUT broadcasting and report its REAL
+    *                           destinations/amount/fee/txid, so the online (view-only) wallet can show —
+    *                           and verify — what a broadcast would actually send before committing to it.
+    *                           The wallet's view key decrypts the blob; no daemon/network access is used.
+    *                           This is the broadcast-side counterpart of loadUnsignedTx(): the phone is the
+    *                           only thing that can put a cold-signed tx on-chain, so it is where a
+    *                           substituted / tampered / wrong signed blob must be caught.
+    * \param fileName          - path to the signed tx file (as produced by the air-gapped signer)
+    * \return                  - "OK\n" then one line per tx: "txid\tfee\taddr:amount;addr:amount;..." with
+    *                            amounts in atomic units; or "ERROR:<message>" if the blob can't be read.
+    *                            Default returns "ERROR:not supported" for backends without cold-sign.
+    */
+    virtual std::string describeSignedTx(const std::string &fileName) { (void)fileName; return "ERROR:not supported"; }
+
 
     /*!
      * \brief disposeTransaction - destroys transaction object

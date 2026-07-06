@@ -181,6 +181,7 @@ public:
                                         const std::set<uint32_t> &subtract_fee_from_outputs = {}) override;
     virtual PendingTransaction * createSweepUnmixableTransaction() override;
     bool submitTransaction(const std::string &fileName) override;
+    std::string describeSignedTx(const std::string &fileName) override;
     virtual UnsignedTransaction * loadUnsignedTx(const std::string &unsigned_filename) override;
     bool hasUnknownKeyImages() const override;
     bool exportKeyImages(const std::string &filename, bool all = false) override;

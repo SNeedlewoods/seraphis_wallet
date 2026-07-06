@@ -39,6 +39,7 @@
 #include "subaddress_account.h"
 #include "common_defines.h"
 #include "common/util.h"
+#include "cryptonote_basic/cryptonote_basic_impl.h" // get_account_address_as_str (describeSignedTx)
 
 #include "mnemonics/electrum-words.h"
 #include "mnemonics/english.h"
@@ -1287,8 +1288,45 @@ UnsignedTransaction *WalletImpl::loadUnsignedTx(const std::string &unsigned_file
     extra_message = (boost::format("%u outputs to import. ") % (unsigned)std::get<2>(transaction->m_unsigned_tx_set.transfers).size()).str();
   transaction->checkLoadedTx([&transaction](){return transaction->m_unsigned_tx_set.txes.size();}, [&transaction](size_t n)->const tools::wallet2::tx_construction_data&{return transaction->m_unsigned_tx_set.txes[n];}, extra_message);
   setStatus(transaction->status(), transaction->errorString());
-    
+
   return transaction;
+}
+
+// Load a SIGNED tx set from file WITHOUT broadcasting and report its REAL destinations/amount/fee/txid.
+// The phone is the only thing that can put a cold-signed tx on-chain, so it is where a substituted /
+// tampered / wrong signed blob must be caught: the online view-only wallet authored the unsigned tx and
+// can now compare what it AUTHORED against what the signed blob actually pays before committing. The view
+// key decrypts the blob; no daemon access is used. A blob from another wallet fails to decrypt and comes
+// back as ERROR: — which is itself a mismatch signal.
+std::string WalletImpl::describeSignedTx(const std::string &fileName) {
+  clearStatus();
+  std::vector<tools::wallet2::pending_tx> ptx;
+  try {
+    if (checkBackgroundSync("cannot describe tx") || !m_wallet->load_tx(fileName, ptx)) {
+      const std::string es = errorString();
+      return std::string("ERROR:") + (es.empty() ? "failed to load signed transaction" : es);
+    }
+  } catch (const std::exception &e) {
+    return std::string("ERROR:") + e.what();
+  } catch (...) {
+    return std::string("ERROR:unhandled exception loading signed transaction");
+  }
+
+  std::ostringstream out;
+  out << "OK\n";
+  for (const auto &p : ptx) {
+    const std::string txid = epee::string_tools::pod_to_hex(cryptonote::get_transaction_hash(p.tx));
+    out << txid << '\t' << p.fee << '\t';
+    bool first = true;
+    for (const auto &d : p.dests) {
+      if (!first) out << ';';
+      first = false;
+      out << cryptonote::get_account_address_as_str(m_wallet->nettype(), d.is_subaddress, d.addr)
+          << ':' << d.amount;
+    }
+    out << '\n';
+  }
+  return out.str();
 }
 
 bool WalletImpl::submitTransaction(const string &fileName) {
