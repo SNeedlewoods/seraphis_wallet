@@ -1301,6 +1301,24 @@ struct Wallet
      * vtable slot indices are unchanged for the prebuilt LWS backend, which never calls this.
      */
     virtual std::string getSignedTxHex(const std::string &fileName) { (void)fileName; return "ERROR:not supported"; }
+
+    /*!
+     * \brief pauseRefreshAndWait - like pauseRefresh(), but ACTUALLY stops an in-flight scan before
+     *                              returning. pauseRefresh() only clears the m_refreshEnabled flag, so
+     *                              it can't interrupt a refresh() already running (e.g. a long
+     *                              from-genesis fast-refresh) — it merely prevents the NEXT iteration.
+     *                              Callers that re-point the wallet right after (init()/setDaemon on a
+     *                              node or mode switch) would then race the still-running scan, wedging
+     *                              the sync (chainHeight frozen) or crashing (SIGSEGV in refresh()).
+     *                              This variant mirrors LOCK_REFRESH: clear the flag, call
+     *                              m_wallet->stop() (wallet2 checks m_run between blocks and bails), then
+     *                              BLOCK until the in-flight refresh has fully exited. Safe to re-init
+     *                              afterwards. Default is a no-op override of pauseRefresh() for backends
+     *                              (LWS) whose refresh isn't the wallet2 scan loop.
+     * NOTE: appended at the END of the interface on purpose (after getSignedTxHex) so existing vtable
+     * slot indices are unchanged for the prebuilt LWS backend.
+     */
+    virtual void pauseRefreshAndWait() { pauseRefresh(); }
 };
 
 /**

@@ -2758,6 +2758,26 @@ void WalletImpl::pauseRefresh()
     }
 }
 
+void WalletImpl::pauseRefreshAndWait()
+{
+    LOG_PRINT_L2(__FUNCTION__ << ": refresh pausing (blocking until in-flight scan exits)...");
+    if (m_refreshThreadDone) {
+        return;
+    }
+    // Unlike pauseRefresh() (which only clears the flag and so cannot interrupt a refresh() already
+    // running — e.g. a long from-genesis fast-refresh), this mirrors the LOCK_REFRESH macro so it is
+    // safe to re-point the wallet (init()/setDaemon on a node/mode switch) right after this returns:
+    //   1. clear the enable flag so the refresh loop won't start another iteration,
+    //   2. m_wallet->stop() — wallet2 checks m_run between blocks and bails out of the current scan,
+    //   3. wake the refresh thread so it notices, then
+    //   4. take m_refreshMutex2 (held by doRefresh() for the whole duration of a refresh) to BLOCK
+    //      until the in-flight scan has fully exited.
+    m_refreshEnabled = false;
+    m_wallet->stop();
+    m_refreshCV.notify_one();
+    boost::lock_guard<boost::mutex> guard(m_refreshMutex2);
+}
+
 
 bool WalletImpl::isNewWallet() const
 {
