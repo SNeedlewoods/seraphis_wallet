@@ -7226,6 +7226,7 @@ uint64_t wallet2::view_only_balance(uint32_t index_major, const std::vector<cryp
         !is_spent(td, false) &&
         !td.m_frozen &&
         !td.m_key_image_partial &&
+        !td.m_key_image_request &&
         td.m_key_image_known &&
         td.is_rct() &&
         is_transfer_unlocked(td) &&
