@@ -1319,6 +1319,21 @@ struct Wallet
      * slot indices are unchanged for the prebuilt LWS backend.
      */
     virtual void pauseRefreshAndWait() { pauseRefresh(); }
+
+    /*!
+     * \brief setExportOutputsInUnsigned - when false, unsigned tx sets are written WITHOUT the
+     *                                     embedded wallet-history output export (compact airgap QR).
+     *                                     Signing needs only `sources`; spent-input KIs return in the
+     *                                     signed tx's vin and change-output KIs in tx_key_images, so
+     *                                     the export is purely a KI-sync convenience for signers that
+     *                                     haven't seen the wallet's history (e.g. a restored seed
+     *                                     before its first completed key-image sync). Default true =
+     *                                     stock behavior. Default impl is a no-op: the LWS backend
+     *                                     already writes compact unsigned sets unconditionally.
+     * NOTE: appended at the END of the interface on purpose (after pauseRefreshAndWait) so existing
+     * vtable slot indices are unchanged for the prebuilt LWS backend.
+     */
+    virtual void setExportOutputsInUnsigned(bool enabled) { (void)enabled; }
 };
 
 /**

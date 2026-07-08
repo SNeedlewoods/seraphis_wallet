@@ -1281,6 +1281,7 @@ wallet2::wallet2(network_type nettype, uint64_t kdf_rounds, bool unattended, std
   m_enable_multisig(false),
   m_pool_info_query_time(0),
   m_has_ever_refreshed_from_node(false),
+  m_export_outputs_in_unsigned(true),
   m_allow_mismatched_daemon_version(false),
   m_polyseed(false)
 {
@@ -7921,7 +7922,11 @@ std::string wallet2::dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) c
     txs.txes.push_back(get_construction_data_with_decrypted_short_payment_id(tx, m_account.get_device()));
   }
   
-  txs.new_transfers = export_outputs();
+  // ANONERO: the export is a KI-sync convenience, not a signing requirement (empty
+  // new_transfers is legal stock format — sign_tx skips import on empty). Gated so
+  // born-paired wallets don't ship their history in every airgap QR.
+  if (m_export_outputs_in_unsigned)
+    txs.new_transfers = export_outputs();
   // save as binary
   std::ostringstream oss;
   binary_archive<true> ar(oss);

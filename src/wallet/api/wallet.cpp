@@ -2778,6 +2778,11 @@ void WalletImpl::pauseRefreshAndWait()
     boost::lock_guard<boost::mutex> guard(m_refreshMutex2);
 }
 
+void WalletImpl::setExportOutputsInUnsigned(bool enabled)
+{
+    m_wallet->export_outputs_in_unsigned(enabled);
+}
+
 
 bool WalletImpl::isNewWallet() const
 {
