@@ -15532,7 +15532,7 @@ namespace
   // outputs failed the decoy-fetch commitment check at spend time ("Daemon response did not include
   // the requested real output"). The exporting side knows the true mask for every output era.
   // The identical codec lives in lwsf (anonero-monero/lwsf src/wallet.cpp) — keep them in sync.
-  constexpr char W2X_MAGIC[8] = {'A', 'N', 'O', 'N', 'W', '2', 'X', '\x02'};  // v2 adds outgoing-tx section
+  constexpr char W2X_MAGIC[8] = {'A', 'N', 'O', 'N', 'W', '2', 'X', '\x03'};  // v2 adds outgoing-tx section; v3 adds block-hash section
   constexpr size_t W2X_FOOTER_SIZE = sizeof(W2X_MAGIC) + 4;
   constexpr size_t W2X_RECORD_SIZE =
     sizeof(crypto::public_key) + sizeof(crypto::hash) + 8 + 8 + 8 + 1 + sizeof(crypto::key_image) +
@@ -15704,6 +15704,36 @@ std::string wallet2::export_w2x_trailer() const
     }
     w2x_put32(body, tx_count);
     body += tx_body;
+  }
+
+  // ---- v3 block-hash section: a top-anchored window of our local chain -------------------------
+  // Carries the recent (height -> block hash) chain so the LWS client lands with a wallet2-parity
+  // reorg-detection window (block_ids) already populated, instead of a COLD first join where it has
+  // no hashes to prove chain agreement. This lets the client's /advance_scan resume at our synced
+  // height on the VERY FIRST server it joins (not only after a later server switch), with no
+  // server-side rescan of history we already hold. Appended inside the same encrypted body, after
+  // the v2 tx section:  [u64 start_height][u32 count][block_hash(32) * count]  (block i is at
+  // height start_height + i). The identical parse lives in lwsf (lwsf/src/wallet.cpp) — keep in sync.
+  {
+    constexpr size_t W2X_MAX_BLOCK_IDS = 2000; // matches the lwsf client's local_chain_cap
+    const size_t chain_size = m_blockchain.size();   // heights [offset, chain_size-1] are in bounds
+    uint32_t n = 0;
+    uint64_t start = 0;
+    if (chain_size)
+    {
+      const uint64_t top = chain_size - 1;
+      const uint64_t lowest = m_blockchain.offset();
+      const uint64_t want = std::min<uint64_t>(W2X_MAX_BLOCK_IDS, top - lowest + 1);
+      start = top + 1 - want;
+      n = uint32_t(want);
+    }
+    w2x_put64(body, start);
+    w2x_put32(body, n);
+    for (uint32_t i = 0; i < n; ++i)
+    {
+      const crypto::hash &h = m_blockchain[start + i];
+      body.append(reinterpret_cast<const char*>(&h), sizeof(h));
+    }
   }
 
   const std::string ct = encrypt_with_view_secret_key(body);
