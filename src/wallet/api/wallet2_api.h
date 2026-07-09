@@ -1334,6 +1334,18 @@ struct Wallet
      * vtable slot indices are unchanged for the prebuilt LWS backend.
      */
     virtual void setExportOutputsInUnsigned(bool enabled) { (void)enabled; }
+
+    /*!
+     * \brief requestedKeyImageCount - how many key images an incremental (all=false) key-image
+     *                                 export would emit: the tail from the first output the view
+     *                                 wallet still flagged m_key_image_request to the end. 0 means
+     *                                 every key image was already delivered — the signer UI can say
+     *                                 "all key images already known" instead of rendering an empty
+     *                                 QR. Only meaningful on the wallet2 signer; default 0.
+     * NOTE: appended at the END of the interface on purpose (after pauseRefreshAndWait) so
+     * existing vtable slot indices are unchanged for the prebuilt LWS backend.
+     */
+    virtual uint64_t requestedKeyImageCount() const { return 0; }
 };
 
 /**

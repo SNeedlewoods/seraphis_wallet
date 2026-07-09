@@ -15241,7 +15241,12 @@ process:
     if (should_expand(td.m_subaddr_index))
       expand_subaddresses(td.m_subaddr_index);
     td.m_key_image_known = true;
-    td.m_key_image_request = true;
+    // ANONERO: preserve the exporting wallet's request flag on a FULL wallet (see the etd
+    // overload) — td came off the wire carrying it; forcing true made the signer's incremental
+    // key-image export degenerate to a full export forever. Watch-only keeps the stock force
+    // (its derived key image is a placeholder, the request genuinely stands).
+    if (m_watch_only)
+      td.m_key_image_request = true;
     td.m_key_image_partial = false;
     THROW_WALLET_EXCEPTION_IF(in_ephemeral.pub != out_key,
         error::wallet_internal_error, "key_image generated ephemeral public key not matched with output_key at index " + boost::lexical_cast<std::string>(i + offset));
@@ -15250,6 +15255,12 @@ process:
     m_pub_keys[td.get_public_key()] = i + offset;
     m_transfers[i + offset] = std::move(td);
   }
+
+  // ANONERO: mirror the etd overload — the incremental export's offset declares the prefix
+  // known; clear stale request flags there so all=false key-image exports stay incremental.
+  if (!m_watch_only)
+    for (size_t n = 0; n < offset && n < m_transfers.size(); ++n)
+      m_transfers[n].m_key_image_request = false;
 
   return m_transfers.size();
 }
@@ -15393,7 +15404,13 @@ size_t wallet2::import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<
     if (should_expand(td.m_subaddr_index))
       expand_subaddresses(td.m_subaddr_index);
     td.m_key_image_known = true;
-    td.m_key_image_request = true;
+    // ANONERO: on a FULL wallet (the cold signer) preserve the exporting wallet's request flag
+    // instead of forcing true — stock's force made export_key_images(all=false) degenerate to
+    // a full export on every signer (every import re-marked everything "requested"), so the
+    // key-image reply QR scaled with wallet history forever. The etd flag is the view wallet's
+    // freshest declaration of which outputs it still needs key images for. Watch-only keeps the
+    // stock force: its derived key image is a placeholder, so the request genuinely stands.
+    td.m_key_image_request = m_watch_only ? true : etd.m_flags.m_key_image_request;
     td.m_key_image_partial = false;
     THROW_WALLET_EXCEPTION_IF(in_ephemeral.pub != out_key,
         error::wallet_internal_error, "key_image generated ephemeral public key not matched with output_key at index " + boost::lexical_cast<std::string>(i + offset));
@@ -15405,13 +15422,23 @@ size_t wallet2::import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<
     {
       td.m_key_image = old->key_image;
       td.m_key_image_known = true;
-      td.m_key_image_request = false;
+      // Full wallet: a signer re-import must keep honoring the view's CURRENT request (it may be
+      // re-requesting an output it lost state for); only watch-only clears it (real KI restored).
+      td.m_key_image_request = m_watch_only ? false : etd.m_flags.m_key_image_request;
       td.m_key_image_partial = false;
     }
 
     m_key_images[td.m_key_image] = i + offset;
     m_pub_keys[td.get_public_key()] = i + offset;
   }
+
+  // ANONERO: an incremental output export's offset is the view wallet's declaration that every
+  // output BELOW it already has a known key image — so on the signer, clear any stale request
+  // flags in that prefix (set by earlier imports) or export_key_images(all=false)'s prefix-skip
+  // would stall there and keep re-exporting the whole history.
+  if (!m_watch_only)
+    for (size_t n = 0; n < offset && n < m_transfers.size(); ++n)
+      m_transfers[n].m_key_image_request = false;
 
   // ANONERO: the positional overwrite above can re-assign which output lives at which index, leaving
   // stale reverse-map entries (old ki/pubkey -> reused index) that would mis-attribute a future spend.
@@ -15475,6 +15502,10 @@ size_t wallet2::import_outputs_from_str(const std::string &outputs_st)
           loaded = true;
     }
     catch (...) {}
+    // ANONERO: remember the etd format parsed even if its vector is EMPTY — an incremental
+    // export whose offset covers everything (all key images known) is a meaningful message to
+    // the signer (clear stale request flags up to offset), not a no-op.
+    const bool loaded_etd = loaded;
     if (!loaded)
       std::get<2>(new_outputs).clear();
 
@@ -15508,7 +15539,9 @@ size_t wallet2::import_outputs_from_str(const std::string &outputs_st)
       std::get<2>(outputs) = {};
     }
 
-    imported_outputs = !std::get<2>(new_outputs).empty() ? import_outputs(new_outputs) : !std::get<2>(outputs).empty() ? import_outputs(outputs) : 0;
+    // ANONERO: dispatch etd imports on PARSE success, not vector non-emptiness — an empty
+    // incremental export still carries its offset declaration (see import_outputs prefix-clear).
+    imported_outputs = loaded_etd ? import_outputs(new_outputs) : !std::get<2>(outputs).empty() ? import_outputs(outputs) : 0;
   }
   catch (const std::exception &e)
   {

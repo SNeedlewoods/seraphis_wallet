@@ -1663,6 +1663,16 @@ private:
 
     // Import/Export wallet data
     std::tuple<uint64_t, uint64_t, std::vector<tools::wallet2::exported_transfer_details>> export_outputs(bool all = false, uint32_t start = 0, uint32_t count = 0xffffffff) const;
+    // ANONERO: how many entries export_key_images(all=false) would emit — the tail from the first
+    // still-requested output to the end (same prefix-skip the export uses). 0 = nothing requested,
+    // every key image already delivered. Cheap flag scan, no key derivation.
+    uint64_t requested_key_image_count() const
+    {
+      size_t offset = 0;
+      while (offset < m_transfers.size() && !m_transfers[offset].m_key_image_request)
+        ++offset;
+      return m_transfers.size() - offset;
+    }
     std::string export_outputs_to_str(bool all = false, uint32_t start = 0, uint32_t count = 0xffffffff) const;
     size_t import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<tools::wallet2::exported_transfer_details>> &outputs);
     size_t import_outputs(const std::tuple<uint64_t, uint64_t, std::vector<tools::wallet2::transfer_details>> &outputs);

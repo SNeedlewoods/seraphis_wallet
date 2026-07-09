@@ -2783,6 +2783,11 @@ void WalletImpl::setExportOutputsInUnsigned(bool enabled)
     m_wallet->export_outputs_in_unsigned(enabled);
 }
 
+uint64_t WalletImpl::requestedKeyImageCount() const
+{
+    return m_wallet->requested_key_image_count();
+}
+
 
 bool WalletImpl::isNewWallet() const
 {
