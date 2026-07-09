@@ -31,6 +31,10 @@
 #include "cryptonote_config.h"
 #include "common/util.h"
 
+#if defined(__linux__)
+#include <sys/resource.h>
+#endif
+
 static __thread int depth = 0;
 static __thread bool is_leaf = false;
 
@@ -149,6 +153,18 @@ void threadpool::waiter::dec() {
 }
 
 void threadpool::run(bool flush) {
+#if defined(__linux__)
+  // Reactive UI responsiveness (Android): run the persistent pool WORKER threads at a lower scheduler
+  // priority (nice +5) than the UI/render thread. A large wallet scan derives outputs across every
+  // core; at equal priority that starves the main thread and the app "lags to a halt" while syncing
+  // (and a node switch re-triggers the scan). Niced down, the CFS scheduler preempts a worker the
+  // instant the UI thread is runnable and lets the workers use FULL CPU whenever the UI is idle — an
+  // automatic, continuous throttle with no manual load detection. +5 keeps them in the foreground
+  // cpuset (unlike the +10 background cpuset, which would throttle the scan hard). Only the persistent
+  // workers (flush==false) are niced; the caller thread (flush==true) keeps its own priority.
+  if (!flush)
+    setpriority(PRIO_PROCESS, 0, 5);
+#endif
   boost::unique_lock<boost::mutex> lock(mutex);
   while (running) {
     entry e;
