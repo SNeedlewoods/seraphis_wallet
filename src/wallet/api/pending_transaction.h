@@ -46,6 +46,7 @@ public:
     int status() const override;
     std::string errorString() const override;
     bool commit(const std::string &filename = "", bool overwrite = false) override;
+    bool commit(const std::string &filename, bool overwrite, bool export_outputs) override;
     uint64_t amount() const override;
     uint64_t dust() const override;
     uint64_t fee() const override;

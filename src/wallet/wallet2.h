@@ -1206,8 +1206,8 @@ private:
 
     void commit_tx(pending_tx& ptx_vector);
     void commit_tx(std::vector<pending_tx>& ptx_vector);
-    bool save_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename) const;
-    std::string dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) const;
+    bool save_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename, bool export_outputs = true) const;
+    std::string dump_tx_to_str(const std::vector<pending_tx> &ptx_vector, bool export_outputs = true) const;
     std::string save_multisig_tx(multisig_tx_set txs);
     bool save_multisig_tx(const multisig_tx_set &txs, const std::string &filename);
     std::string save_multisig_tx(const std::vector<pending_tx>& ptx_vector);
@@ -1497,8 +1497,6 @@ private:
     void segregation_height(uint64_t height) { m_segregation_height = height; }
     bool ignore_fractional_outputs() const { return m_ignore_fractional_outputs; }
     void ignore_fractional_outputs(bool value) { m_ignore_fractional_outputs = value; }
-    bool export_outputs_in_unsigned() const { return m_export_outputs_in_unsigned; }
-    void export_outputs_in_unsigned(bool value) { m_export_outputs_in_unsigned = value; }
     bool confirm_non_default_ring_size() const { return m_confirm_non_default_ring_size; }
     void confirm_non_default_ring_size(bool always) { m_confirm_non_default_ring_size = always; }
     uint64_t ignore_outputs_above() const { return m_ignore_outputs_above; }
@@ -2174,12 +2172,6 @@ private:
     bool m_load_deprecated_formats;
 
     bool m_has_ever_refreshed_from_node;
-
-    // ANONERO: session-only (not serialized); when false, dump_tx_to_str omits the output
-    // export from unsigned tx sets. The signer signs from sources; spent-input KIs travel in
-    // the signed tx's vin and change-output KIs in tx_key_images, so the export is only a
-    // KI-sync convenience for wallets with history the signer hasn't seen.
-    bool m_export_outputs_in_unsigned;
 
     static boost::mutex default_daemon_address_lock;
     static std::string default_daemon_address;

@@ -1281,7 +1281,6 @@ wallet2::wallet2(network_type nettype, uint64_t kdf_rounds, bool unattended, std
   m_enable_multisig(false),
   m_pool_info_query_time(0),
   m_has_ever_refreshed_from_node(false),
-  m_export_outputs_in_unsigned(true),
   m_allow_mismatched_daemon_version(false),
   m_polyseed(false)
 {
@@ -7901,16 +7900,16 @@ void wallet2::commit_tx(std::vector<pending_tx>& ptx_vector)
   }
 }
 //----------------------------------------------------------------------------------------------------
-bool wallet2::save_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename) const
+bool wallet2::save_tx(const std::vector<pending_tx>& ptx_vector, const std::string &filename, bool export_outputs) const
 {
   LOG_PRINT_L0("saving " << ptx_vector.size() << " transactions");
-  std::string ciphertext = dump_tx_to_str(ptx_vector);
+  std::string ciphertext = dump_tx_to_str(ptx_vector, export_outputs);
   if (ciphertext.empty())
     return false;
   return save_to_file(filename, ciphertext);
 }
 //----------------------------------------------------------------------------------------------------
-std::string wallet2::dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) const
+std::string wallet2::dump_tx_to_str(const std::vector<pending_tx> &ptx_vector, bool export_outputs) const
 {
   LOG_PRINT_L0("saving " << ptx_vector.size() << " transactions");
   unsigned_tx_set txs;
@@ -7923,10 +7922,10 @@ std::string wallet2::dump_tx_to_str(const std::vector<pending_tx> &ptx_vector) c
   }
   
   // ANONERO: the export is a KI-sync convenience, not a signing requirement (empty
-  // new_transfers is legal stock format — sign_tx skips import on empty). Gated so
-  // born-paired wallets don't ship their history in every airgap QR.
-  if (m_export_outputs_in_unsigned)
-    txs.new_transfers = export_outputs();
+  // new_transfers is legal stock format — sign_tx skips import on empty). Gated by the
+  // caller so born-paired wallets don't ship their history in every airgap QR.
+  if (export_outputs)
+    txs.new_transfers = this->export_outputs();
   // save as binary
   std::ostringstream oss;
   binary_archive<true> ar(oss);

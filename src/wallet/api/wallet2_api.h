@@ -126,6 +126,20 @@ struct PendingTransaction
      * @return vector of base58-encoded signers' public keys
      */
     virtual std::vector<std::string> signersKeys() const = 0;
+
+    /*!
+     * \brief commit (compact-capable overload) - when export_outputs is false, the unsigned tx set
+     *        written to \p filename OMITS the embedded wallet-history output export (compact airgap
+     *        QR). Signing needs only `sources`; spent-input key images return in the signed tx's vin
+     *        and change-output key images in tx_key_images, so the export is purely a KI-sync
+     *        convenience for signers that haven't seen the wallet's history. The plain 2-arg commit()
+     *        keeps stock behavior (export_outputs = true).
+     * NOTE: appended at the END of the interface on purpose so existing vtable slot indices are
+     * unchanged for the prebuilt LWS backend; the default body ignores the flag (LWS already writes
+     * compact unsigned sets unconditionally) and forwards to the 2-arg commit().
+     */
+    virtual bool commit(const std::string &filename, bool overwrite, bool export_outputs)
+    { (void)export_outputs; return commit(filename, overwrite); }
 };
 
 /**
@@ -1319,21 +1333,6 @@ struct Wallet
      * slot indices are unchanged for the prebuilt LWS backend.
      */
     virtual void pauseRefreshAndWait() { pauseRefresh(); }
-
-    /*!
-     * \brief setExportOutputsInUnsigned - when false, unsigned tx sets are written WITHOUT the
-     *                                     embedded wallet-history output export (compact airgap QR).
-     *                                     Signing needs only `sources`; spent-input KIs return in the
-     *                                     signed tx's vin and change-output KIs in tx_key_images, so
-     *                                     the export is purely a KI-sync convenience for signers that
-     *                                     haven't seen the wallet's history (e.g. a restored seed
-     *                                     before its first completed key-image sync). Default true =
-     *                                     stock behavior. Default impl is a no-op: the LWS backend
-     *                                     already writes compact unsigned sets unconditionally.
-     * NOTE: appended at the END of the interface on purpose (after pauseRefreshAndWait) so existing
-     * vtable slot indices are unchanged for the prebuilt LWS backend.
-     */
-    virtual void setExportOutputsInUnsigned(bool enabled) { (void)enabled; }
 
     /*!
      * \brief requestedKeyImageCount - how many key images an incremental (all=false) key-image

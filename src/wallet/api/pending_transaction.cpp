@@ -80,6 +80,13 @@ std::vector<std::string> PendingTransactionImpl::txid() const
 
 bool PendingTransactionImpl::commit(const std::string &filename, bool overwrite)
 {
+    // ANONERO: default export_outputs=true preserves stock behavior; the 3-arg overload lets the
+    // caller request a compact (history-free) unsigned tx set per-call, no wallet session state.
+    return commit(filename, overwrite, true);
+}
+
+bool PendingTransactionImpl::commit(const std::string &filename, bool overwrite, bool export_outputs)
+{
 
     LOG_PRINT_L3("m_pending_tx size: " << m_pending_tx.size());
 
@@ -94,7 +101,7 @@ bool PendingTransactionImpl::commit(const std::string &filename, bool overwrite)
           LOG_ERROR(m_errorString);
           return false;
         }
-        bool r = m_wallet.m_wallet->save_tx(m_pending_tx, filename);
+        bool r = m_wallet.m_wallet->save_tx(m_pending_tx, filename, export_outputs);
         if (!r) {
           m_errorString = tr("Failed to write transaction(s) to file");
           m_status = Status_Error;
