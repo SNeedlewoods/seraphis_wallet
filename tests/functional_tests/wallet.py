@@ -117,7 +117,7 @@ class WalletTest():
             assert self.error_codes[res_dict["error"]["code"]] == "WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR"
             # QUESTION : actually there is a specific error code for this case, should I change it to this?
 #            assert self.error_codes[res_dict["error"]["code"]] == "WALLET_RPC_ERROR_CODE_WALLET_ALREADY_EXISTS"
-            assert res_dict["error"]["message"] == "attempting to generate or restore wallet, but specified file(s) exist.  Exiting to not risk overwriting."
+            assert res_dict["error"]["message"] == "Failed to create wallet: attempting to generate or restore wallet, but specified file(s) exist.  Exiting to not risk overwriting."
 
         # invalid filename
         try:
@@ -509,7 +509,7 @@ class WalletTest():
         try: res = wallet.open_wallet('test1', password = '')
         except Exception as e:
             res_dict = ast.literal_eval(str(e))
-            ok = self.error_codes[res_dict["error"]["code"]] == "WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR" and res_dict["error"]["message"] == "invalid password"
+            ok = self.error_codes[res_dict["error"]["code"]] == "WALLET_RPC_ERROR_CODE_UNKNOWN_ERROR" and res_dict["error"]["message"] == "Failed to open wallet: invalid password"
         assert ok
 
         res = wallet.open_wallet('test1', password = 'foo')

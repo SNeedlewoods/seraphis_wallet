@@ -747,23 +747,24 @@ struct Wallet
         Status_Critical
     };
 
+    // Matching error codes in src/wallet/wallet_rpc_server_error_codes.h
     enum ExtendedStatus {
-        ExtendedStatus_Ok,
-        ExtendedStatus_WalletInternalError,     // generic error, if none of the ones below
-        ExtendedStatus_WalletAlreadyExists,
-        ExtendedStatus_InvalidPassword,
-        ExtendedStatus_NoDaemonConnection,
-        ExtendedStatus_DaemonIsBusy,
-        ExtendedStatus_AccountIndexOutOfBounds,
-        ExtendedStatus_AddressIndexOutOfBounds,
-        ExtendedStatus_NotEnoughMoney,
-        ExtendedStatus_NotEnoughUnlockedMoney,
-        ExtendedStatus_NotEnoughOutsToMix,
-        ExtendedStatus_ZeroAmount,
-        ExtendedStatus_ZeroDestination,
-        ExtendedStatus_TxNotPossible,
-        ExtendedStatus_WrongSignature,
-        ExtendedStatus_NonZeroUnlockTime,
+        ExtendedStatus_Ok                       =   0,
+        ExtendedStatus_Unknown_Error            =  -1,
+        ExtendedStatus_DaemonIsBusy             =  -3,
+        ExtendedStatus_WrongSignature           =  -9,
+        ExtendedStatus_AccountIndexOutOfBounds  = -14,
+        ExtendedStatus_AddressIndexOutOfBounds  = -15,
+        ExtendedStatus_TxNotPossible            = -16,
+        ExtendedStatus_NotEnoughMoney           = -17,
+        ExtendedStatus_NotEnoughOutsToMix       = -19,
+        ExtendedStatus_ZeroDestination          = -20,
+        ExtendedStatus_WalletAlreadyExists      = -21,
+        ExtendedStatus_InvalidPassword          = -22,
+        ExtendedStatus_NotEnoughUnlockedMoney   = -37,
+        ExtendedStatus_NoDaemonConnection       = -38,
+        ExtendedStatus_ZeroAmount               = -46,
+        ExtendedStatus_NonZeroUnlockTime        = -50,
     };
 
     enum ConnectionStatus {

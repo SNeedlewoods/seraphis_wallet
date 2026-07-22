@@ -2734,8 +2734,7 @@ void WalletImpl::setStatus(int status, const std::string& message, const int* ex
     boost::lock_guard<boost::mutex> l(m_statusMutex);
     m_status = status;
     m_errorString = message;
-    if (extended_status)
-        m_extendedStatus = *extended_status;
+    m_extendedStatus = (extended_status ? *extended_status : ExtendedStatus_Unknown_Error);
 }
 
 void WalletImpl::refreshThreadFunc()

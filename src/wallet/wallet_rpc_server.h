@@ -271,6 +271,8 @@ namespace tools
       void fill_transfer_entry(tools::wallet_rpc::transfer_entry &entry, const TransactionInfo &tx_info);
       bool not_open(epee::json_rpc::error& er);
       void handle_rpc_exception(const std::exception_ptr& e, epee::json_rpc::error& er, int default_error_code);
+      // return false if no error occured
+      bool api_error_2_rpc_error(epee::json_rpc::error& er);
 
       template<typename Ts, typename Tu, typename Tk, typename Ta>
       bool fill_response(std::unique_ptr<PendingTransaction> ptx_vector,
