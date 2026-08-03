@@ -831,15 +831,18 @@ private:
     void add_subaddress_account(const std::string& label);
     size_t get_num_subaddress_accounts() const { return m_subaddress_labels.size(); }
     size_t get_num_subaddresses(uint32_t index_major) const { return index_major < m_subaddress_labels.size() ? m_subaddress_labels[index_major].size() : 0; }
-    void add_subaddress(uint32_t index_major, const std::string& label); // throws when index is out of bound
+    void add_subaddress(uint32_t index_major, const std::string& label, bool skip_generating_address = false); // throws when index is out of bound
     /**
      * brief: expand subaddress labels up to `index`, and scanning map to highest labeled index plus current lookahead
      * param: index -
+     * param: skip_generating_address - when creating many subaddresses set this to true,
+     *                                  to skip expensive redundant computations until the last subaddress is created
+     *                                  set to false for the last one, so those computations are only done once
      *
      * All calls to `expand_subaddresses()` will *always* expand the subaddress map if the lookahead
      * values have been increased since the last call.
      */
-    void expand_subaddresses(const cryptonote::subaddress_index& index);
+    void expand_subaddresses(const cryptonote::subaddress_index& index, bool skip_generating_address = false);
     void create_one_off_subaddress(const cryptonote::subaddress_index& index);
     std::string get_subaddress_label(const cryptonote::subaddress_index& index) const;
     void set_subaddress_label(const cryptonote::subaddress_index &index, const std::string &label);

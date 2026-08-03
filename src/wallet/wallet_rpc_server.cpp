@@ -758,7 +758,7 @@ namespace tools
       address_indices.reserve(req.count);
 
       for (uint32_t i = 0; i < req.count; i++) {
-        m_wallet->add_subaddress(req.account_index, req.label);
+        m_wallet->add_subaddress(req.account_index, req.label, /* skip_generating_address */ i != (req.count-1));
         uint32_t new_address_index = m_wallet->get_num_subaddresses(req.account_index) - 1;
         address_indices.push_back(new_address_index);
         addresses.push_back(m_wallet->get_subaddress_as_str({req.account_index, new_address_index}));

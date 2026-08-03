@@ -1592,11 +1592,11 @@ void wallet2::add_subaddress_account(const std::string& label)
   m_subaddress_labels[index_major][0] = label;
 }
 //----------------------------------------------------------------------------------------------------
-void wallet2::add_subaddress(uint32_t index_major, const std::string& label)
+void wallet2::add_subaddress(uint32_t index_major, const std::string& label, bool skip_generating_address /* = false */)
 {
   THROW_WALLET_EXCEPTION_IF(index_major >= m_subaddress_labels.size(), error::account_index_outofbound);
   uint32_t index_minor = (uint32_t)get_num_subaddresses(index_major);
-  expand_subaddresses({index_major, index_minor});
+  expand_subaddresses({index_major, index_minor}, skip_generating_address);
   m_subaddress_labels[index_major][index_minor] = label;
 }
 //----------------------------------------------------------------------------------------------------
@@ -1612,7 +1612,7 @@ bool wallet2::should_expand(const cryptonote::subaddress_index &index) const
   return true;
 }
 //----------------------------------------------------------------------------------------------------
-void wallet2::expand_subaddresses(const cryptonote::subaddress_index& index)
+void wallet2::expand_subaddresses(const cryptonote::subaddress_index& index, bool skip_generating_address /* = false */)
 {
   // check if index will overflow container (usually only applicable on 32-bit systems)
   if constexpr (sizeof(std::size_t) <= sizeof(std::uint32_t))
@@ -1629,6 +1629,10 @@ void wallet2::expand_subaddresses(const cryptonote::subaddress_index& index)
   if (subaddr_labels_in_account.size() <= index.minor)
     subaddr_labels_in_account.resize(index.minor + 1);
   get_account_tags(); //trigger m_account_tags integrity checks
+
+  // skip unnecessary computations when generating many addresses
+  if (skip_generating_address)
+      return;
 
   // compile all indices present in subaddress scanning map, as well as every major index
   std::unordered_set<cryptonote::subaddress_index> all_indices;
